@@ -75,6 +75,37 @@ def overlaps(a: str, b: str) -> bool:
     return a == b or a.startswith(b + "/") or b.startswith(a + "/")
 
 
+def assert_builder_path_constraints(payload: dict, *, label: str) -> None:
+    ownership_paths = payload["ownership_paths"]
+    allowed_paths = payload["allowed_paths"]
+
+    if not ownership_paths:
+        raise AssertionError(f"{label}: builder slice must declare ownership_paths")
+    if not allowed_paths:
+        raise AssertionError(f"{label}: builder slice must declare allowed_paths")
+
+    for ownership_path in ownership_paths:
+        if not is_within(ownership_path, allowed_paths):
+            raise AssertionError(
+                f"{label}: ownership path {ownership_path!r} is outside allowed_paths"
+            )
+
+
+def assert_no_builder_ownership_overlap(builders: list[dict], *, label: str) -> None:
+    for i in range(len(builders)):
+        left = builders[i]
+        for j in range(i + 1, len(builders)):
+            right = builders[j]
+            for left_path in left["ownership_paths"]:
+                for right_path in right["ownership_paths"]:
+                    if overlaps(left_path, right_path):
+                        raise AssertionError(
+                            f"{label}: ownership overlap between builder slices "
+                            f"{left['slice_id']} and {right['slice_id']}: "
+                            f"{left_path!r} vs {right_path!r}"
+                        )
+
+
 def assert_no_forbidden_roles(payload: dict, *, label: str) -> None:
     agent_type = payload.get("agent_type")
     role = payload.get("role")
@@ -151,14 +182,8 @@ def assert_swarm_ticket_invariants(dispatches: list[dict]) -> None:
         )
 
     for payload in builders:
-        if not payload["ownership_paths"]:
-            raise AssertionError(
-                f"{payload['slice_id']}: builder slice must declare ownership_paths"
-            )
-        if not payload["allowed_paths"]:
-            raise AssertionError(
-                f"{payload['slice_id']}: builder slice must declare allowed_paths"
-            )
+        assert_builder_path_constraints(payload, label=payload["slice_id"])
+    assert_no_builder_ownership_overlap(builders, label="dispatches.workstreams.json")
 
 
 def assert_council_bootstrap_invariants(dispatches: list[dict]) -> None:
@@ -252,29 +277,9 @@ def assert_dispatch_invariants() -> None:
             "write_mixed dispatches must be exactly 6 builder + 6 runner slices"
         )
 
-    ownership_map: list[tuple[str, list[str]]] = []
     for payload in builders:
-        if not payload["ownership_paths"]:
-            raise AssertionError(
-                f"{payload['slice_id']}: builder slice must declare ownership_paths"
-            )
-        if not payload["allowed_paths"]:
-            raise AssertionError(
-                f"{payload['slice_id']}: builder slice must declare allowed_paths"
-            )
-        ownership_map.append((payload["slice_id"], payload["ownership_paths"]))
-
-    for i in range(len(ownership_map)):
-        left_id, left_paths = ownership_map[i]
-        for j in range(i + 1, len(ownership_map)):
-            right_id, right_paths = ownership_map[j]
-            for left_path in left_paths:
-                for right_path in right_paths:
-                    if overlaps(left_path, right_path):
-                        raise AssertionError(
-                            "Ownership overlap between builder slices "
-                            f"{left_id} and {right_id}: {left_path!r} vs {right_path!r}"
-                        )
+        assert_builder_path_constraints(payload, label=payload["slice_id"])
+    assert_no_builder_ownership_overlap(builders, label="dispatches.write_mixed.json")
 
     workstreams = validate_dispatches(
         E2E_DIR / "dispatches.workstreams.json", expected_count=9

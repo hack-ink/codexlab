@@ -52,6 +52,12 @@ Concept roles are used for protocol clarity:
 
 Read `PLAYBOOK.md` and follow it literally for ticket-board lifecycle, lane caps, and handoff handling.
 
+If `route="multi"` and the task is uncertain, mixed read/write, or likely to exceed a single coherent Builder timebox:
+
+- Open `BROKER_SPLIT.md` before scheduling the first write wave.
+- Apply `WORKER_PROTOCOL.md` when drafting dispatch contracts and evaluating handoff requests.
+- Use `FAILURE_MODES.md` when stalls, schema-invalid output, deadlocks, or over-splitting occur.
+
 ## Outputs
 
 - Schema-valid worker results (`runner`, `builder`, `inspector`) using JSON-only payloads.

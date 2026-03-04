@@ -44,7 +44,7 @@ Bootstrap runner template:
 ```json
 {
   "schema": "task-dispatch/1",
-  "ssot_id": "scenario-hash",
+  "ssot_id": "scenario-hash-5277daf391c2",
   "task_id": "example-task",
   "slice_id": "council--runner-boundary-map",
   "agent_type": "runner",
@@ -77,7 +77,7 @@ Bootstrap inspector template:
 ```json
 {
   "schema": "task-dispatch/1",
-  "ssot_id": "scenario-hash",
+  "ssot_id": "scenario-hash-5277daf391c2",
   "task_id": "example-task",
   "slice_id": "council--inspector-risk-check",
   "agent_type": "inspector",

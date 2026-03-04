@@ -37,6 +37,14 @@ def main() -> None:
         print(f"OK: schema + examples ({f.relative_to(SKILL_ROOT)})")
 
     proc = subprocess.run(
+        [sys.executable, str(E2E_DIR / "validate_doc_templates.py")],
+        check=False,
+        text=True,
+    )
+    if proc.returncode != 0:
+        raise SystemExit(proc.returncode)
+
+    proc = subprocess.run(
         [sys.executable, str(E2E_DIR / "validate_payloads.py")],
         check=False,
         text=True,

@@ -106,7 +106,12 @@ Swarm-first scheduling is dynamic.
   - allowed `agent_type`
   - dependency references are resolvable
   - write ownership does not violate active locks
-- Broker deduplicates semantically identical tickets and merges only additive constraints.
+- Broker deduplicates only when the fingerprint matches after normalization:
+  - `schema`, `ssot_id`, `task_id`, `agent_type`, `slice_kind`
+  - sorted `dependencies`
+  - normalized+sorted `allowed_paths` and `ownership_paths` (trim trailing `/`)
+- `slice_id` must remain unique on the board; dedup merges into one canonical ticket and never keeps duplicates with the same `slice_id`.
+- Merge rule is additive-only: union list-like constraints (`acceptance`, `constraints`, `no_touch`, `evidence_requirements`) and dependency sets; do not merge when core execution fields diverge.
 
 `handoff_requests` are suggestions, not direct spawns. Only the Broker dispatches workers.
 
@@ -131,6 +136,13 @@ Recommended timeboxes:
 - Runner work: 4-12 min
 - Builder work: 4-12 min
 - Inspector review: 4-10 min
+
+Protocol modules (use as needed; do not turn them into mandatory linear phases):
+
+- `COUNCIL.md`: optional bootstrap wave (read/review only)
+- `BROKER_SPLIT.md`: split ladder + dispatch templates for safe parallel scheduling
+- `WORKER_PROTOCOL.md`: swarm-first worker behavior and handoff request quality bar
+- `FAILURE_MODES.md`: recovery playbook for stalls, schema failures, deadlocks, and over-splitting
 
 ## 8) Dispatch topology (strict)
 
