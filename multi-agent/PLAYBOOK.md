@@ -129,8 +129,7 @@ Director scheduling loop (mandatory):
    - `done`: completed slices
 2. While `pending` is not empty OR `inflight` is not empty:
    - Spawn from `pending` into `inflight` until either:
-     - both `len(inflight_read) == window_read` and `len(inflight_write) == window_write`, or
-     - no slice is runnable due to dependencies/ownership locks.
+     - no pending slice is runnable within current lane caps and gates (`window_read`, `window_write`, deps, ownership locks), or
    - If `inflight` is non-empty: call `functions.wait` (wait-any) with a bounded timeout and handle whichever child finishes.
      - On timeout: do **not** exit; loop and poll again.
      - On completion: record result, `close_agent`, remove from `inflight`, and immediately try to refill from `pending`.
