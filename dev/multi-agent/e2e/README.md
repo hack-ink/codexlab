@@ -2,7 +2,7 @@
 
 This directory contains schema-valid **example payloads** for the vNext broker model:
 
-- Director-only spawning (`max_depth=1`)
+- Broker-only spawning (`max_depth=1`)
 - No Orchestrator role
 - JSON-only dispatch + JSON-only worker results
 

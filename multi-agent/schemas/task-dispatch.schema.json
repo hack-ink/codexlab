@@ -25,7 +25,7 @@
     "slice_id": { "type": "string", "minLength": 1 },
     "agent_type": {
       "type": "string",
-      "enum": ["operator", "coder_spark", "coder_codex", "auditor", "supervisor"]
+      "enum": ["runner", "builder", "inspector"]
     },
     "slice_kind": {
       "type": "string",
@@ -82,8 +82,8 @@
       "schema": "task-dispatch/1",
       "ssot_id": "e2e-write-4aeb119f4748",
       "task_id": "e2e",
-      "slice_id": "coder-1",
-      "agent_type": "coder_spark",
+      "slice_id": "builder-1",
+      "agent_type": "builder",
       "slice_kind": "work",
       "timebox_minutes": 12,
       "allowed_paths": ["multi-agent/"],

@@ -1,92 +1,115 @@
-# Multi-Agent Council (Default Protocol)
+# Multi-Agent Council (Swarm Bootstrap)
 
-When `route="multi"`, the skill uses a **Council-by-default** planning pattern: one parallel bootstrap wave to reduce linear setup and lock in safe split quality before work starts.
+When `route="multi"`, Council is an optional bootstrap pattern that improves split quality before the main write wave. It is not a mandatory gate.
 
-## 1) Council bootstrap wave
+## 1) Bootstrap wave (read/review only)
 
-The council wave is a read-focused plan set that should be dispatched before any write worker by default:
+Default bootstrap composition:
 
-- `2 x supervisor` (`agent_type=supervisor`, `slice_kind="work"`) for alternative decomposition paths.
-- `1 x operator` (`agent_type=operator`, `slice_kind="work"`) to build dependency graph and ownership risk map.
-- `1 x auditor` (`agent_type=auditor`, `slice_kind="review"`) for pre-mortem policy check (optional but default for new/complex tasks).
+- `1 x runner` (`agent_type="runner"`, `slice_kind="work"`) to map boundaries and dependencies.
+- `1 x inspector` (`agent_type="inspector"`, `slice_kind="review"`) to run pre-mortem risk checks.
 
-Each council member returns:
+No dedicated planning slice is required for Council bootstrap.
 
-- `dispatch_plan` candidate or explicit constraints for the main wave.
-- disjoint `ownership_paths` recommendations, dependency ordering, and failure-handling assumptions.
-- concise evidence that each suggested branch can proceed independently.
+Expected outputs:
 
-## 2) Council merge behavior
+- dependency and ownership boundary recommendations
+- lock-collision risks and mitigation notes
+- candidate ticket suggestions for Builder/Runner phases
 
-- Accept or reconcile at most one council plan as the canonical seed.
-- Reject duplicate/conflicting plans by explicit `next_actions` in the Director response and request a reduced plan before dispatch.
-- Keep split depth low: if plans agree on 2–4 high-confidence lanes, proceed; if they diverge heavily, request one replan with smaller task boundary.
+## 2) Merge behavior for council findings
 
-## 3) Dual-window protocol (read/write separation)
+Broker handles council outputs as inputs, not mandates:
 
-- `window_read`: in-flight read lane cap (operators/probes/read-only validation).
-- `window_write`: in-flight write lane cap (coders + supervisor merge).
-- Default policy for `max_threads=48`:
-  - `window_read <= 16`
-  - `window_write <= 8`
-  - `reserve_threads = 4` (director, optional auditor, headroom)
-- Write-capable slices:
-  - `agent_type in ("coder_spark", "coder_codex")`
-  - `agent_type = "supervisor"` and `slice_kind = "merge"`
-- Never exceed ownership overlap limits between write slices.
+- accept compatible recommendations directly into pending board
+- reject conflicting recommendations with explicit rationale
+- request one reduced re-evaluation only if conflicts block safe scheduling
+
+Council output should reduce ambiguity, not introduce a new linear planning bottleneck.
+
+## 3) Window alignment
+
+Council tickets consume only read/review lanes:
+
+- runner tickets consume `window_runner`
+- inspector tickets consume `window_inspector`
+- no council ticket consumes `window_builder`
+
+This keeps bootstrap parallel with independent read tickets and avoids starving write throughput.
 
 ## 4) Templates
 
-- Bootstrap planner template:
+Bootstrap runner template:
 
 ```json
 {
   "schema": "task-dispatch/1",
   "ssot_id": "scenario-hash",
   "task_id": "example-task",
-  "slice_id": "wsN--council-operator-mapper",
-  "agent_type": "operator",
+  "slice_id": "council--runner-boundary-map",
+  "agent_type": "runner",
   "slice_kind": "work",
   "timebox_minutes": 6,
   "allowed_paths": [],
   "ownership_paths": [],
   "dependencies": [],
   "task_contract": {
-    "goal": "Map dependency graph and suggested split boundaries.",
-    "acceptance": ["Boundary map is complete", "Constraints and risks are explicit"]
+    "goal": "Map dependency graph and write ownership boundaries for parallel scheduling.",
+    "acceptance": [
+      "Boundary map is complete",
+      "Collision risks are explicit"
+    ],
+    "constraints": [
+      "Read-only investigation",
+      "No repo writes"
+    ],
+    "no_touch": []
   },
-  "evidence_requirements": ["commands", "files_read"]
+  "evidence_requirements": [
+    "commands",
+    "files_read"
+  ]
 }
 ```
 
-- Canonical work template:
+Bootstrap inspector template:
 
 ```json
 {
   "schema": "task-dispatch/1",
   "ssot_id": "scenario-hash",
   "task_id": "example-task",
-  "slice_id": "wsN--coder-docs",
-  "agent_type": "coder_spark",
-  "slice_kind": "work",
-  "timebox_minutes": 12,
-  "allowed_paths": ["multi-agent/"],
-  "ownership_paths": ["multi-agent/PLAYBOOK.md"],
+  "slice_id": "council--inspector-risk-check",
+  "agent_type": "inspector",
+  "slice_kind": "review",
+  "timebox_minutes": 8,
+  "allowed_paths": [],
+  "ownership_paths": [],
   "dependencies": [],
   "task_contract": {
-    "goal": "Make scoped changes and keep write ownership disjoint.",
-    "acceptance": ["Diff is scoped", "No overlap with sibling coder paths"]
+    "goal": "Identify safety and sequencing risks before write tickets are scheduled.",
+    "acceptance": [
+      "High-risk collisions are identified",
+      "Required evidence gates are listed"
+    ],
+    "constraints": [
+      "Review-only output",
+      "No repo writes"
+    ],
+    "no_touch": []
   },
-  "evidence_requirements": ["diff"]
+  "evidence_requirements": [
+    "review_notes"
+  ]
 }
 ```
 
 ## 5) Governance reminders
 
-- Director dispatches remain non-overlapping in write ownership.
-- `slice_kind` for supervisor planning remains `work` (no work should wait on `supervisor` only paths as `probe` unless explicitly diagnostic).
-- All dispatches still must validate against `schemas/task-dispatch.schema.json`.
-- For quick reuse of council skeletons in this workspace, use:
+- Council is optional; skip it for tiny, clear tasks.
+- All dispatches must validate against `schemas/task-dispatch.schema.json`.
+- Keep Builder write ownership disjoint before dispatching parallel write tickets.
+- For quick bootstrap skeleton generation in this workspace, use:
 
 ```bash
 python3 multi-agent/tools/make_council_bootstrap.py <scenario> --task-id <task-id> --format array

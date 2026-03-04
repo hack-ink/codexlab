@@ -1,18 +1,18 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "review-result.auditor/1",
-  "title": "review-result.auditor/1",
+  "$id": "review-result.inspector/1",
+  "title": "review-result.inspector/1",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema", "ssot_id", "task_id", "role", "verdict", "findings"],
   "properties": {
-    "schema": { "const": "review-result.auditor/1" },
+    "schema": { "const": "review-result.inspector/1" },
     "ssot_id": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-[0-9a-f]{8,64}$"
     },
     "task_id": { "type": "string", "minLength": 1 },
-    "role": { "const": "auditor" },
+    "role": { "const": "inspector" },
     "verdict": { "type": "string", "enum": ["PASS", "BLOCK", "NEEDS_EVIDENCE"] },
     "summary": { "type": "string" },
     "findings": {
@@ -51,10 +51,10 @@
   ],
   "examples": [
     {
-      "schema": "review-result.auditor/1",
+      "schema": "review-result.inspector/1",
       "ssot_id": "e2e-write-4aeb119f4748",
       "task_id": "e2e",
-      "role": "auditor",
+      "role": "inspector",
       "verdict": "PASS",
       "summary": "Protocol rules are followed and evidence is sufficient.",
       "findings": [

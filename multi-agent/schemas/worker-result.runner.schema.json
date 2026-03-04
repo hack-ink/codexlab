@@ -1,0 +1,181 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "worker-result.runner/1",
+  "title": "worker-result.runner/1",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "task_dispatch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "ssot_id",
+        "task_id",
+        "slice_id",
+        "agent_type",
+        "timebox_minutes",
+        "allowed_paths",
+        "ownership_paths",
+        "task_contract"
+      ],
+      "properties": {
+        "schema": { "const": "task-dispatch/1" },
+        "ssot_id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-[0-9a-f]{8,64}$"
+        },
+        "task_id": { "type": "string", "minLength": 1 },
+        "slice_id": { "type": "string", "minLength": 1 },
+        "agent_type": {
+          "type": "string",
+          "enum": ["runner", "builder", "inspector"]
+        },
+        "slice_kind": {
+          "type": "string",
+          "enum": ["probe", "work", "review", "merge"],
+          "default": "work"
+        },
+        "timebox_minutes": { "type": "integer", "minimum": 1, "maximum": 60 },
+        "allowed_paths": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "default": []
+        },
+        "ownership_paths": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "default": []
+        },
+        "dependencies": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "default": []
+        },
+        "task_contract": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["goal", "acceptance", "constraints"],
+          "properties": {
+            "goal": { "type": "string", "minLength": 1 },
+            "acceptance": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "minItems": 1
+            },
+            "constraints": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "default": []
+            },
+            "no_touch": {
+              "type": "array",
+              "items": { "type": "string", "minLength": 1 },
+              "default": []
+            }
+          }
+        },
+        "evidence_requirements": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "default": []
+        }
+      }
+    }
+  },
+  "required": ["schema", "ssot_id", "task_id", "slice_id", "role", "status", "summary"],
+  "properties": {
+    "schema": { "const": "worker-result.runner/1" },
+    "ssot_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:-[a-z0-9]+)*-[0-9a-f]{8,64}$"
+    },
+    "task_id": { "type": "string", "minLength": 1 },
+    "slice_id": { "type": "string", "minLength": 1 },
+    "role": { "const": "runner" },
+    "status": { "type": "string", "enum": ["done", "blocked", "partial"] },
+    "summary": { "type": "string", "minLength": 1 },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "commands": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["cmd", "exit_code"],
+            "properties": {
+              "cmd": { "type": "string", "minLength": 1 },
+              "cwd": { "type": "string", "minLength": 1 },
+              "exit_code": { "type": "integer" },
+              "stdout_excerpt": { "type": "string" },
+              "stderr_excerpt": { "type": "string" }
+            }
+          },
+          "default": []
+        },
+        "files_read": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "default": []
+        }
+      },
+      "default": {}
+    },
+    "next_actions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "default": []
+    },
+    "handoff_requests": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/task_dispatch" },
+      "default": []
+    }
+  },
+  "examples": [
+    {
+      "schema": "worker-result.runner/1",
+      "ssot_id": "e2e-read-04c9d864d719",
+      "task_id": "e2e",
+      "slice_id": "runner-1",
+      "role": "runner",
+      "status": "done",
+      "summary": "Confirmed schemas validate locally and listed files to update.",
+      "evidence": {
+        "commands": [
+          {
+            "cmd": "python3 dev/multi-agent/e2e/run_smoke.py",
+            "cwd": "<repo_root>",
+            "exit_code": 0,
+            "stdout_excerpt": "OK: schema + examples ..."
+          }
+        ],
+        "files_read": ["multi-agent/SKILL.md"]
+      },
+      "next_actions": ["Proceed to builder slice to implement changes."],
+      "handoff_requests": [
+        {
+          "schema": "task-dispatch/1",
+          "ssot_id": "e2e-read-04c9d864d719",
+          "task_id": "e2e",
+          "slice_id": "builder-1",
+          "agent_type": "builder",
+          "slice_kind": "work",
+          "timebox_minutes": 10,
+          "allowed_paths": ["multi-agent/schemas/"],
+          "ownership_paths": ["multi-agent/schemas/worker-result.builder.schema.json"],
+          "dependencies": ["runner-1"],
+          "task_contract": {
+            "goal": "Apply the agreed schema update.",
+            "acceptance": ["Schema validates with Draft202012Validator."],
+            "constraints": ["Do not modify docs or e2e fixtures."],
+            "no_touch": []
+          },
+          "evidence_requirements": ["diff", "verification"]
+        }
+      ]
+    }
+  ]
+}

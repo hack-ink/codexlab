@@ -21,6 +21,7 @@ def load_json(path: Path):
         )
     return json.loads(stripped)
 
+
 def validate_one(schema_path: Path, payload: dict, label: str) -> None:
     schema = load_json(schema_path)
     Draft202012Validator.check_schema(schema)
@@ -60,10 +61,10 @@ def assert_json_only_output(payload: dict, path: Path) -> None:
 def is_within(touched: str, allowed_paths: list[str]) -> bool:
     touched = touched.rstrip("/")
     for allowed in allowed_paths:
-        a = allowed.rstrip("/")
-        if touched == a:
+        normalized = allowed.rstrip("/")
+        if touched == normalized:
             return True
-        if touched.startswith(a + "/"):
+        if touched.startswith(normalized + "/"):
             return True
     return False
 
@@ -74,123 +75,32 @@ def overlaps(a: str, b: str) -> bool:
     return a == b or a.startswith(b + "/") or b.startswith(a + "/")
 
 
-def assert_no_forbidden_roles(payload: dict) -> None:
+def assert_no_forbidden_roles(payload: dict, *, label: str) -> None:
     agent_type = payload.get("agent_type")
     role = payload.get("role")
-    forbidden = {"orchestrator", "director"}
-    if agent_type in forbidden or role in forbidden:
-        raise AssertionError(
-            "Fixtures must not use forbidden roles (orchestrator/director)"
-        )
+    allowed = {"runner", "builder", "inspector"}
+
+    if role is not None and role not in allowed:
+        raise AssertionError(f"{label}: unknown role detected: {role}")
+    if agent_type is not None and agent_type not in allowed:
+        raise AssertionError(f"{label}: unknown agent_type detected: {agent_type}")
 
 
-def assert_coder_spark_timebox(payload: dict) -> None:
-    if (
-        payload.get("agent_type") == "coder_spark"
-        and payload.get("slice_kind") == "work"
-        and payload.get("timebox_minutes", 0) > 12
-    ):
-        raise AssertionError(
-            f"{payload['slice_id']}: coder_spark+work must have timebox_minutes <= 12"
-        )
-
-
-def assert_supervisor_first_invariants(
-    dispatches: list[dict], *, supervisor_slice_id: str, prefix: str
-) -> None:
+def assert_unique_slice_ids(dispatches: list[dict], *, label: str) -> None:
     slice_ids = [d["slice_id"] for d in dispatches]
     if len(slice_ids) != len(set(slice_ids)):
-        duplicates = sorted(
-            {sid for sid in slice_ids if slice_ids.count(sid) > 1}
-        )
-        raise AssertionError(
-            "dispatches.workstreams.json has duplicate slice_id(s): "
-            + ", ".join(duplicates)
-        )
+        duplicates = sorted({sid for sid in slice_ids if slice_ids.count(sid) > 1})
+        raise AssertionError(f"{label}: duplicate slice_id(s): {', '.join(duplicates)}")
 
-    non_prefix = [d["slice_id"] for d in dispatches if not d["slice_id"].startswith(prefix)]
-    if non_prefix:
-        raise AssertionError(
-            "dispatches.workstreams.json slice_id prefix invariant failed for: "
-            + ", ".join(non_prefix)
-        )
 
+def assert_dependency_targets_exist(dispatches: list[dict], *, label: str) -> None:
+    slice_ids = {d["slice_id"] for d in dispatches}
     for d in dispatches:
-        if d["slice_id"] == supervisor_slice_id:
-            continue
-        deps = d.get("dependencies", [])
-        if supervisor_slice_id not in deps:
-            raise AssertionError(
-                f"{d['slice_id']}: non-plan dispatch must depend on {supervisor_slice_id}"
-            )
-
-
-def assert_council_bootstrap_invariants(dispatches: list[dict]) -> None:
-    if not dispatches:
-        raise AssertionError("dispatches.council_bootstrap.json must not be empty")
-
-    ssot_id = dispatches[0]["ssot_id"]
-    prefix = "council--"
-    supervisor_ids = []
-    for d in dispatches:
-        if not d["slice_id"].startswith(prefix):
-            raise AssertionError(
-                "dispatches.council_bootstrap.json slice_id must start with `council--`"
-            )
-        if d["ssot_id"] != ssot_id:
-            raise AssertionError("dispatches.council_bootstrap.json must use one ssot_id")
-        if d["agent_type"] == "supervisor":
-            supervisor_ids.append(d["slice_id"])
-
-    if len(supervisor_ids) != 2:
-        raise AssertionError(
-            "dispatches.council_bootstrap.json must have exactly 2 supervisor slices"
-        )
-
-    for sid in supervisor_ids:
-        match = next(
-            d for d in dispatches if d["slice_id"] == sid and d["agent_type"] == "supervisor"
-        )
-        if match["slice_kind"] != "work":
-            raise AssertionError(
-                f"{sid}: council bootstrap supervisor slice must be slice_kind=work"
-            )
-        if match.get("dependencies"):
-            raise AssertionError(
-                f"{sid}: council bootstrap supervisor slices should not depend on others by default"
-            )
-
-    for d in dispatches:
-        if d["agent_type"] == "operator":
-            if d["slice_kind"] != "work":
+        for dep in d.get("dependencies", []):
+            if dep not in slice_ids:
                 raise AssertionError(
-                    f"{d['slice_id']}: council bootstrap operator slice must be slice_kind=work"
+                    f"{label}: {d['slice_id']} depends on missing slice_id {dep!r}"
                 )
-            if d.get("dependencies"):
-                raise AssertionError(
-                    f"{d['slice_id']}: bootstrap operator slice must be dependency-free by default"
-                )
-        if d["agent_type"] == "auditor":
-            if d["slice_kind"] != "review":
-                raise AssertionError(
-                    f"{d['slice_id']}: council bootstrap auditor slice must be slice_kind=review"
-                )
-            if d.get("dependencies"):
-                raise AssertionError(
-                    f"{d['slice_id']}: bootstrap auditor slice must be dependency-free by default"
-                )
-
-    operators = [d for d in dispatches if d["agent_type"] == "operator"]
-    auditors = [d for d in dispatches if d["agent_type"] == "auditor"]
-    if len(operators) != 1:
-        raise AssertionError(
-            "dispatches.council_bootstrap.json must have 1 operator and 1 auditor"
-        )
-
-    if len(auditors) != 1:
-        raise AssertionError(
-            "dispatches.council_bootstrap.json must have 1 operator and 1 auditor"
-        )
 
 
 def validate_dispatches(path: Path, expected_count: int) -> list[dict]:
@@ -201,50 +111,127 @@ def validate_dispatches(path: Path, expected_count: int) -> list[dict]:
         raise AssertionError(
             f"{path.name}: expected {expected_count} items, got {len(dispatches)}"
         )
+
+    assert_unique_slice_ids(dispatches, label=path.name)
+    assert_dependency_targets_exist(dispatches, label=path.name)
+
     schema_path = SCHEMAS_DIR / "task-dispatch.schema.json"
-    for i, d in enumerate(dispatches, 1):
-        assert_no_forbidden_roles(d)
-        validate_one(schema_path, d, f"{path.name}[{i}]")
-        assert_ssot_id_policy(d["ssot_id"])
-        assert_coder_spark_timebox(d)
+    for i, payload in enumerate(dispatches, 1):
+        assert_no_forbidden_roles(payload, label=f"{path.name}[{i}]")
+        validate_one(schema_path, payload, f"{path.name}[{i}]")
+        assert_ssot_id_policy(payload["ssot_id"])
+
     return dispatches
 
 
+def assert_handoff_requests(
+    payload: dict, *, dispatch_schema: Path, label: str
+) -> None:
+    for i, request in enumerate(payload.get("handoff_requests", []), 1):
+        assert_no_forbidden_roles(request, label=f"{label}.handoff_requests[{i}]")
+        validate_one(dispatch_schema, request, f"{label}.handoff_requests[{i}]")
+        assert_ssot_id_policy(request["ssot_id"])
+
+
+def assert_swarm_ticket_invariants(dispatches: list[dict]) -> None:
+    if not all(d["slice_id"].startswith("swarm--") for d in dispatches):
+        bad = [d["slice_id"] for d in dispatches if not d["slice_id"].startswith("swarm--")]
+        raise AssertionError(
+            "dispatches.workstreams.json: slice_id must start with `swarm--`: "
+            + ", ".join(bad)
+        )
+
+    builders = [d for d in dispatches if d["agent_type"] == "builder"]
+    runners = [d for d in dispatches if d["agent_type"] == "runner"]
+    inspectors = [d for d in dispatches if d["agent_type"] == "inspector"]
+
+    if not builders or not runners or not inspectors:
+        raise AssertionError(
+            "dispatches.workstreams.json must include runner, builder, and inspector slices"
+        )
+
+    for payload in builders:
+        if not payload["ownership_paths"]:
+            raise AssertionError(
+                f"{payload['slice_id']}: builder slice must declare ownership_paths"
+            )
+        if not payload["allowed_paths"]:
+            raise AssertionError(
+                f"{payload['slice_id']}: builder slice must declare allowed_paths"
+            )
+
+
+def assert_council_bootstrap_invariants(dispatches: list[dict]) -> None:
+    if len(dispatches) != 2:
+        raise AssertionError(
+            "dispatches.council_bootstrap.json must contain exactly 2 default bootstrap slices"
+        )
+
+    ssot_id = dispatches[0]["ssot_id"]
+    runners = [d for d in dispatches if d["agent_type"] == "runner"]
+    inspectors = [d for d in dispatches if d["agent_type"] == "inspector"]
+
+    if len(runners) != 1 or len(inspectors) != 1:
+        raise AssertionError(
+            "dispatches.council_bootstrap.json must have 1 runner and 1 inspector"
+        )
+
+    for payload in dispatches:
+        if payload["ssot_id"] != ssot_id:
+            raise AssertionError(
+                "dispatches.council_bootstrap.json must use one shared ssot_id"
+            )
+        if "-council-" not in payload["slice_id"]:
+            raise AssertionError(
+                "dispatches.council_bootstrap.json slice_id must include `-council-`"
+            )
+        if payload.get("dependencies"):
+            raise AssertionError(
+                f"{payload['slice_id']}: default council bootstrap slices must be dependency-free"
+            )
+
+    runner = runners[0]
+    inspector = inspectors[0]
+    if runner["slice_kind"] != "work":
+        raise AssertionError("council bootstrap runner slice must be slice_kind=work")
+    if inspector["slice_kind"] != "review":
+        raise AssertionError("council bootstrap inspector slice must be slice_kind=review")
+
+
 def validate_results() -> None:
-    operator_schema = SCHEMAS_DIR / "worker-result.operator.schema.json"
-    coder_schema = SCHEMAS_DIR / "worker-result.coder.schema.json"
-    auditor_schema = SCHEMAS_DIR / "review-result.auditor.schema.json"
-    supervisor_schema = SCHEMAS_DIR / "worker-result.supervisor.schema.json"
+    runner_schema = SCHEMAS_DIR / "worker-result.runner.schema.json"
+    builder_schema = SCHEMAS_DIR / "worker-result.builder.schema.json"
+    inspector_schema = SCHEMAS_DIR / "review-result.inspector.schema.json"
     dispatch_schema = SCHEMAS_DIR / "task-dispatch.schema.json"
 
     results = [
-        ("result.operator.json", operator_schema),
-        ("result.coder.json", coder_schema),
-        ("result.auditor.pass.json", auditor_schema),
-        ("result.auditor.block.json", auditor_schema),
-        ("result.auditor.needs_evidence.json", auditor_schema),
-        ("result.supervisor.plan.json", supervisor_schema),
-        ("result.supervisor.integrate.json", supervisor_schema),
+        ("result.runner.json", runner_schema),
+        ("result.builder.json", builder_schema),
+        ("result.inspector.pass.json", inspector_schema),
+        ("result.inspector.block.json", inspector_schema),
+        ("result.inspector.needs_evidence.json", inspector_schema),
     ]
-    for fname, schema_path in results:
-        payload = load_json(E2E_DIR / fname)
-        assert_no_forbidden_roles(payload)
-        assert_json_only_output(payload, E2E_DIR / fname)
-        validate_one(schema_path, payload, fname)
+
+    for filename, schema_path in results:
+        payload = load_json(E2E_DIR / filename)
+        assert_no_forbidden_roles(payload, label=filename)
+        assert_json_only_output(payload, E2E_DIR / filename)
+        validate_one(schema_path, payload, filename)
         assert_ssot_id_policy(payload["ssot_id"])
 
-        if fname == "result.supervisor.plan.json":
-            for i, d in enumerate(payload.get("dispatch_plan", []), 1):
-                assert_no_forbidden_roles(d)
-                validate_one(dispatch_schema, d, f"{fname}.dispatch_plan[{i}]")
-                assert_coder_spark_timebox(d)
-                assert_ssot_id_policy(d["ssot_id"])
+        if filename in {"result.runner.json", "result.builder.json"}:
+            assert_handoff_requests(
+                payload,
+                dispatch_schema=dispatch_schema,
+                label=filename,
+            )
 
-    coder = load_json(E2E_DIR / "result.coder.json")
-    for p in coder["changeset"]["touched_paths"]:
-        if not is_within(p, coder["allowed_paths"]):
+    builder = load_json(E2E_DIR / "result.builder.json")
+    for touched_path in builder["changeset"]["touched_paths"]:
+        if not is_within(touched_path, builder["allowed_paths"]):
             raise AssertionError(
-                f"result.coder.json: touched path {p!r} is outside allowed_paths"
+                "result.builder.json: touched path "
+                f"{touched_path!r} is outside allowed_paths"
             )
 
 
@@ -252,46 +239,50 @@ def assert_dispatch_invariants() -> None:
     read_only = validate_dispatches(
         E2E_DIR / "dispatches.read_only.json", expected_count=16
     )
-    if any(d["agent_type"] != "operator" for d in read_only):
-        raise AssertionError("read_only dispatches must use agent_type=operator only")
+    if any(d["agent_type"] != "runner" for d in read_only):
+        raise AssertionError("read_only dispatches must use agent_type=runner only")
     if any(d["ownership_paths"] for d in read_only):
         raise AssertionError("read_only dispatches must have empty ownership_paths")
 
     write = validate_dispatches(E2E_DIR / "dispatches.write_mixed.json", expected_count=12)
-    coders = [d for d in write if d["agent_type"] in ("coder_spark", "coder_codex")]
-    ops = [d for d in write if d["agent_type"] == "operator"]
-    if len(coders) != 6 or len(ops) != 6:
-        raise AssertionError("write_mixed dispatches must be 6 coders + 6 operators")
+    builders = [d for d in write if d["agent_type"] == "builder"]
+    runners = [d for d in write if d["agent_type"] == "runner"]
+    if len(builders) != 6 or len(runners) != 6:
+        raise AssertionError(
+            "write_mixed dispatches must be exactly 6 builder + 6 runner slices"
+        )
 
-    coder_ownership = []
-    for d in coders:
-        if not d["ownership_paths"]:
-            raise AssertionError(f"{d['slice_id']}: coder must declare ownership_paths")
-        if not d["allowed_paths"]:
-            raise AssertionError(f"{d['slice_id']}: coder must declare allowed_paths")
-        coder_ownership.append((d["slice_id"], d["ownership_paths"]))
+    ownership_map: list[tuple[str, list[str]]] = []
+    for payload in builders:
+        if not payload["ownership_paths"]:
+            raise AssertionError(
+                f"{payload['slice_id']}: builder slice must declare ownership_paths"
+            )
+        if not payload["allowed_paths"]:
+            raise AssertionError(
+                f"{payload['slice_id']}: builder slice must declare allowed_paths"
+            )
+        ownership_map.append((payload["slice_id"], payload["ownership_paths"]))
 
-    for i in range(len(coder_ownership)):
-        a_id, a_paths = coder_ownership[i]
-        for j in range(i + 1, len(coder_ownership)):
-            b_id, b_paths = coder_ownership[j]
-            for ap in a_paths:
-                for bp in b_paths:
-                    if overlaps(ap, bp):
+    for i in range(len(ownership_map)):
+        left_id, left_paths = ownership_map[i]
+        for j in range(i + 1, len(ownership_map)):
+            right_id, right_paths = ownership_map[j]
+            for left_path in left_paths:
+                for right_path in right_paths:
+                    if overlaps(left_path, right_path):
                         raise AssertionError(
-                            f"Ownership overlap between coder slices {a_id} and {b_id}: {ap!r} vs {bp!r}"
+                            "Ownership overlap between builder slices "
+                            f"{left_id} and {right_id}: {left_path!r} vs {right_path!r}"
                         )
 
     workstreams = validate_dispatches(
         E2E_DIR / "dispatches.workstreams.json", expected_count=9
     )
-    assert_supervisor_first_invariants(
-        workstreams,
-        supervisor_slice_id="ws2-dev--supervisor-plan",
-        prefix="ws2-dev--",
-    )
+    assert_swarm_ticket_invariants(workstreams)
+
     council_bootstrap = validate_dispatches(
-        E2E_DIR / "dispatches.council_bootstrap.json", expected_count=4
+        E2E_DIR / "dispatches.council_bootstrap.json", expected_count=2
     )
     assert_council_bootstrap_invariants(council_bootstrap)
 
@@ -299,7 +290,7 @@ def assert_dispatch_invariants() -> None:
 def main() -> None:
     assert_dispatch_invariants()
     validate_results()
-    print("OK: fixtures + invariants (vNext)")
+    print("OK: fixtures + invariants (swarm-first)")
 
 
 if __name__ == "__main__":

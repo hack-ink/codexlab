@@ -12,5 +12,5 @@ python3 dev/multi-agent/e2e/run_smoke.py
 
 ## Docs
 
-- Director interactive e2e: `dev/multi-agent/DIRECTOR_E2E.md`
+- Broker interactive e2e: `dev/multi-agent/BROKER_E2E.md`
 - Fixtures + validators: `dev/multi-agent/e2e/`

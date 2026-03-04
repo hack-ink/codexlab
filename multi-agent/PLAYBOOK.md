@@ -1,199 +1,185 @@
-# Multi-Agent Playbook (vNext)
+# Multi-Agent Playbook (Swarm-First)
 
 Hard constraint: runtime `max_depth = 1`.
 
-This makes the Director a **broker/scheduler**. Depth=1 children do not have collab tools, so they cannot spawn. This is the only reliable way to prevent same-level spawns.
+`max_depth=1` makes the Broker a **scheduler**. Depth-1 children do not have collab tools, so they cannot spawn. This is the topology guardrail that prevents same-level spawning.
 
 ## 0) Routing gate (90s rule)
 
 - Always record:
-  - `t_max_s` (max seconds you expect to finish)
+  - `t_max_s` (max seconds expected to finish)
   - `t_why` (why that estimate / uncertainty)
 - Route:
   - `single` if tiny, clear, low-risk and `t_max_s <= 90`
   - `multi` if uncertain or `t_max_s > 90`
-- For `multi`, dispatch is **Supervisor-first per workstream**:
-  - Apply **Council-by-default** planning first for all new non-trivial multi runs (see [`COUNCIL.md`](COUNCIL.md)).
-  - First slice for each workstream must be `agent_type="supervisor"` with `slice_kind="work"`.
-  - The Supervisor Planning slice must return a full `dispatch_plan` that names workstreams and expected `timebox_minutes`.
-  - For a given workstream, the Director MUST NOT dispatch any non-supervisor work slice (`operator`, `coder_*`, `auditor`) until that plan is received and accepted.
-- Example (estimate only; not a hardcoded constant): `t_max_s = 900` (15 minutes).
+- For `multi`, use Swarm-first ticket scheduling. There is no required planning phase.
 
-## 1) Multi-agent supervisor workstream model
+## 1) Role model
 
-- Route `multi` into **N workstreams**, where N is based on disjoint ownership and dependency analysis.
-- Director spawns one `supervisor` per workstream (1..N), ideally in parallel when dependencies allow.
-- Each Supervisor must return a `worker-result.supervisor/1` sub-plan, including:
-  - `ownership_paths` / `allowed_paths`
-  - child `operator` and `coder_*` slices
-  - direct dependencies and ordering notes
-- Dispatch worker slices for a workstream as soon as its Supervisor plan is accepted, while other supervisor plans can continue to be evaluated independently.
-- `max_depth=1` remains hard: supervisors cannot spawn sub-workers; they only return plans.
-- If any workstream has blocking or high coupling, Director may collapse it to read-only investigation before continuing dispatch.
+Protocol terminology:
 
-For concrete council wave patterns, bootstrap contracts, and a reusable JSON template, read [`COUNCIL.md`](COUNCIL.md).
+- **Broker**: main thread. Schedules tickets, enforces locks, integrates decisions, and closes workers.
+- **Runner**: `agent_type="runner"`. Runs commands and gathers evidence.
+- **Builder**: `agent_type="builder"`. Performs repo writes and verification.
+- **Inspector**: `agent_type="inspector"`. Reviews evidence and risks.
 
-## 2) Roles (vNext)
+Execution rule:
 
-- **Director (main thread)**: plans slices, spawns workers, schedules wait-any, integrates *decisions*, decides done/blocked, and (optionally) requests Auditor review. In `multi`, Director does **not** write the repo (no `apply_patch` / file edits). Any repo writes (including “integration”) must be delegated to a `coder_*` slice or the Supervisor Merge slice (`slice_kind="merge"`).
-- **Supervisor (worker)**: subtask lead. Uses `agent_type="supervisor"` and returns `worker-result.supervisor/1`:
-  - **Supervisor Planning**: produce a spawn-ready `dispatch_plan` (no repo writes, typically `slice_kind="work"`).
-  - **Supervisor Merge**: perform integration + verification (repo writes allowed).
-  The Supervisor worker never spawns (enforced by `max_depth=1`).
-- **Operator (worker)**: non-coding execution (repo reads, commands, triage, reproductions, measurements, log inspection).
-- **Coder (worker)**: repo writes (edits + tests). Use `coder_spark`; fall back to `coder_codex` only if needed.
-- **Auditor (optional worker)**: review gate for correctness, evidence quality, and risk.
+- Broker is orchestration-only in `multi`; no repo writes.
+- All repo writes, including integration and conflict resolution, go through Builder tickets.
 
-There is no Orchestrator role.
+## 2) Ticket board model
 
-## 3) Spawn topology (strict)
+Every scheduled unit is a `task-dispatch/1` ticket.
 
-The Director may spawn only these agent types: `operator`, `coder_spark`, `coder_codex`, `auditor`, `supervisor`.
+Mandatory ticket fields:
 
-Workers never spawn (enforced by `max_depth=1`).
+- `ssot_id`, `task_id`, `slice_id`
+- `agent_type`, `slice_kind`, `timebox_minutes`
+- `allowed_paths`, `ownership_paths`, `dependencies`
+- `task_contract.goal`, `task_contract.acceptance`, `task_contract.constraints`
 
-## 4) Slice design (how to split)
+Board state tracked by Broker:
 
-Target smaller slices, but avoid “task confetti”.
+- `pending`: valid tickets not dispatched yet
+- `inflight`: dispatched tickets not yet completed + closed
+- `done`: completed tickets
+- `blocked`: tickets that cannot run due to dependency, lock, or repeated failure
 
-Efficiency gate (split vs sequential):
+## 3) Write ownership and locks
 
-- Split only when at least one testable condition holds:
-  - >1 disjoint ownership path is required.
-  - Shared dependency graph has >=2 independent branches.
-  - Estimated implementation effort for a single coder path > 12 minutes.
-  - At least one operation needs blocking I/O (build/test/package/fetch) while independent edits can proceed.
-- Keep sequential when none of the above applies, especially for:
-  - Single-file edits.
-  - Clear one-pass transformations.
-  - Any slice whose expected value-add is mostly exploratory.
-- Hard anti-oversplit rule:
-  - Do not split purely to create micro-slices < 2 minutes except command-only Operator probes.
-  - Do not create duplicate workstreams for overlapping `ownership_paths`.
+- A write-capable ticket is any ticket with `agent_type="builder"`.
+- Broker must never run two in-flight write tickets with overlapping `ownership_paths`.
+- Read/review tickets do not consume write locks.
+- If a lock conflict blocks all pending write tickets, keep polling inflight tickets and refill on completion.
+
+## 4) Lane caps (window policy)
+
+Use separate caps by lane:
+
+- `window_runner`: in-flight runner tickets (`runner`)
+- `window_builder`: in-flight builder tickets (`builder`)
+- `window_inspector`: in-flight inspector tickets (`inspector`)
+- `reserve_threads`: headroom for Broker/control operations
+
+Default policy for `max_threads=48`:
+
+- `window_runner <= 20`
+- `window_builder <= 12`
+- `window_inspector <= 8`
+- `reserve_threads = 8`
+
+Constraint:
+
+- `window_runner + window_builder + window_inspector <= max_threads - reserve_threads`
+
+## 5) Scheduling loop (wait-any + replenishment)
+
+Do not use spawn-wave then wait-all.
+
+Broker loop is mandatory:
+
+1. Build runnable set: pending tickets with satisfied dependencies and lock-safe ownership.
+2. Spawn runnable tickets while lane caps allow.
+3. If `inflight` is non-empty, call `functions.wait` (wait-any) with bounded timeout.
+4. On completion:
+   - record worker result
+   - `close_agent`
+   - remove from `inflight`
+   - immediately refill from `pending`
+5. On timeout:
+   - do not exit
+   - continue loop
+6. If `pending` is non-empty and `inflight` is empty:
+   - mark run `blocked`
+   - report cause (dependency cycle, lock deadlock, or dispatch validation failure)
+
+Hard rule: once any worker is spawned, keep polling until all in-flight workers are closed or an explicit blocked state is returned.
+
+## 6) Handoff protocol
+
+Swarm-first scheduling is dynamic.
+
+- Workers may return optional `handoff_requests` containing additional `task-dispatch/1` tickets.
+- Broker validates each requested ticket before enqueueing:
+  - schema-valid payload
+  - allowed `agent_type`
+  - dependency references are resolvable
+  - write ownership does not violate active locks
+- Broker deduplicates semantically identical tickets and merges only additive constraints.
+
+`handoff_requests` are suggestions, not direct spawns. Only the Broker dispatches workers.
+
+## 7) Split heuristics (avoid linear bottlenecks)
+
+Split when at least one condition holds:
+
+- disjoint ownership paths exist
+- dependency graph has independent branches
+- blocking I/O can overlap with independent edits
+- a single coherent write exceeds a 12-minute timebox
+
+Keep sequential when none apply:
+
+- tiny single-file edits
+- one-pass mechanical transformations
+- tightly coupled edits requiring continuous shared context
 
 Recommended timeboxes:
-- **Planning** (Supervisor): 6–10 min (produce `dispatch_plan` with disjoint ownership and explicit dependencies).
-- **Probe** (Operator): 2–6 min (fast evidence to reduce uncertainty).
-- **Work** (Operator): 4–12 min (commands + analysis + concrete next steps).
-- **Work** (Coder): 4–12 min (small coherent change + verification).
-- **Merge** (Supervisor): 15–25 min (resolve conflicts, run higher-scope checks).
 
-Hard cap (prevents 20+ minute stalls):
-- `coder_spark` + `slice_kind="work"` must have `timebox_minutes <= 12`. If you estimate more, split further or route the wrap-up into the Supervisor Merge slice.
-- For route=`multi`, `timebox_minutes` for every scheduled workstream and work slice should remain in the 4–12 minute band unless explicitly marked **Merge**.
+- Runner probe: 2-6 min
+- Runner work: 4-12 min
+- Builder work: 4-12 min
+- Inspector review: 4-10 min
 
-When to split:
-- Independent paths (different dirs/modules) with **disjoint write ownership**.
-- Clear “probe → decide” steps: run probes in parallel first, then branch.
-- Work that is I/O bound (build/test) vs CPU bound (editing): overlap them.
+## 8) Dispatch topology (strict)
 
-When not to split:
-- Single-file trivial changes (stay `single`).
-- Anything that needs a shared mutable context every minute (heavy merge pressure).
-- Micro-slices (< ~2 minutes) unless they are purely command execution.
+The Broker may spawn only:
 
-Write ownership rule:
-- Every coder slice declares `ownership_paths` (directories/files).
-- The Director never runs two in-flight coder slices with overlapping `ownership_paths`.
+- `runner`
+- `builder`
+- `inspector`
 
-## 5) Dual-window protocol (read/write lanes)
+Workers never spawn under `max_depth=1`.
 
-Director scheduling uses two independent caps.
+## 9) Output contract (JSON-only)
 
-- `window_read`: max in-flight read-only workers (`operator`, auditors that produce no edits).
-- `window_write`: max in-flight write-capable workers (`coder_*`, and `supervisor` with `slice_kind="merge"`).
-- `reserve_threads`: headroom reserved for Director+coordination.
+JSON-only is strict:
 
-For `max_threads = 48`:
-- `reserve_threads = 4`
-- `window_read <= 16`
-- `window_write <= 8`
+- one full JSON value only
+- no markdown fences
+- no surrounding prose or trailing text
 
-General constraints:
-- Never let `window_read + window_write` exceed `max_threads - reserve_threads`.
-- Enforce write ownership locks independently of read slots: read workers do not consume `window_write`.
-- Keep write-capable classification explicit:
-  - write-capable: `agent_type` in (`coder_spark`, `coder_codex`) or (`agent_type` == `supervisor` and `slice_kind` == `merge`)
-  - read-only: `operator`, `auditor`
+Worker output schemas:
 
-## 6) Scheduling (wait-any, replenishing)
+- Runner: `worker-result.runner/1`
+- Builder: `worker-result.builder/1`
+- Inspector: `review-result.inspector/1`
 
-Do not “spawn-wave then wait-all”.
+If output is non-JSON or schema-invalid:
 
-Director scheduling loop (mandatory):
-1. Maintain:
-   - `pending`: slices not yet dispatched
-   - `inflight`: spawned slices not yet finished + closed
-   - `inflight_read`: `operator` + `auditor` slices in `inflight`
-   - `inflight_write`: `coder_*` and `supervisor`(`merge`) slices in `inflight`
-   - `done`: completed slices
-2. While `pending` is not empty OR `inflight` is not empty:
-   - Spawn from `pending` into `inflight` until either:
-     - no pending slice is runnable within current lane caps and gates (`window_read`, `window_write`, deps, ownership locks), or
-   - If `inflight` is non-empty: call `functions.wait` (wait-any) with a bounded timeout and handle whichever child finishes.
-     - On timeout: do **not** exit; loop and poll again.
-     - On completion: record result, `close_agent`, remove from `inflight`, and immediately try to refill from `pending`.
-   - If `inflight` is empty but `pending` is non-empty: the run is blocked (dependency cycle, ownership deadlock, or dispatch error). Stop and report `blocked` with the reason.
+1. `send_input(interrupt=true)` and request exact schema retry
+2. if retry fails, `close_agent` and re-dispatch narrowed slice
+3. escalate to `blocked` after repeated failure
 
-Hard rule: if you have spawned at least one child and `inflight` is non-empty, you must keep polling `functions.wait` until `inflight` becomes empty (or you explicitly mark the run blocked). Never “spawn then stop”.
+## 10) Slow/stuck worker handling
 
-Supervisor-Merge rule (prevents “Director writes code”):
-  - If results require applying edits, resolving conflicts, or running final verification in the repo, dispatch a dedicated **Supervisor Merge** slice (`slice_kind="merge"`, broad `ownership_paths` as needed). The Director remains broker-only.
+If worker exceeds `timebox_minutes`:
 
-## 7) Dispatch schema (Director → worker)
+1. interrupt and request checkpoint (state, last action, next 3 steps, blocked status)
+2. if still stuck/non-responsive, close and re-dispatch with smaller scope
+3. after repeated stalls, mark `blocked` with evidence
 
-Every `spawn_agent` message must be **JSON-only** and validate against:
-- `schemas/task-dispatch.schema.json` (`schema="task-dispatch/1"`)
-- Allowed `slice_kind` values are exactly `probe`, `work`, `review`, and `merge` in this protocol.
+## 11) Inspector policy
 
-Minimum fields to set correctly:
-- `ssot_id`: `scenario-<hex>` (stable, not date-based)
-- `agent_type`: `operator` | `coder_spark` | `coder_codex` | `auditor` | `supervisor`
-- `timebox_minutes`
-- `ownership_paths` + `allowed_paths` (especially for coders)
-- `task_contract.goal` + `task_contract.acceptance`
+- Default for write/mixed runs: run Inspector review before final closeout.
+- Read-only runs: Inspector is optional unless outcome is high impact.
+- Cap review loops with `audit_max_rounds = 5`.
 
-## 8) Worker outputs (JSON-only)
+## 12) `ssot_id` policy
 
-`JSON-only` is exact, strict:
-- The output must be one full JSON value (typically an object), and nothing else.
-- No surrounding prose, no markdown wrappers, no code fences (` ``` `), and no trailing text.
-- No partial payload fragments.
-
-Workers must return JSON-only results:
-- Supervisor: `worker-result.supervisor/1`
-- Operator: `worker-result.operator/1`
-- Coder: `worker-result.coder/1`
-- Auditor: `review-result.auditor/1`
-
-If a worker cannot comply, it must return `status="blocked"` and explain why.
-If a worker returns non-JSON or markdown-wrapped output, the Director must:
-1. `send_input(interrupt=true)` asking for a raw JSON-only retry of the exact required schema.
-2. If still non-compliant, `close_agent`, then re-dispatch the same slice with the same contract (or narrower scope).
-3. Escalate to `blocked` only if repeated attempts still violate JSON-only.
-
-## 9) Supervision (slow / stuck / crash)
-
-If a worker exceeds its `timebox_minutes`:
-1. `send_input(interrupt=true)` asking for a checkpoint: current state, last action, next 3 steps, and whether it is blocked.
-2. If still not responding or clearly stuck: `close_agent`, then re-dispatch the slice (or shrink scope).
-3. If repeated stalls: mark the run `blocked` with explicit reason and evidence.
-
-If a worker errors/exits:
-- The Director treats it as `blocked` for that slice, captures error evidence, and either retries with a smaller slice or escalates.
-
-## 10) Auditor policy (default)
-
-- **write/mixed runs**: request Auditor review before finalizing.
-- **read_only runs**: skip Auditor unless the outcome is high-impact.
-
-Audit loop cap:
-- `audit_max_rounds = 5` (hard stop to avoid infinite loops).
-  - Typical is 1 pass; 2 passes only if the first is `BLOCK` or `NEEDS_EVIDENCE`.
-
-## 11) `ssot_id` policy
-
-Use `scenario-hash` (no dates, no secrets).
+Use scenario-hash format only (no dates, no secrets).
 
 Generator:
+
 - `python3 multi-agent/tools/make_ssot_id.py <scenario>`

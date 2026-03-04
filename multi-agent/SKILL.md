@@ -1,61 +1,66 @@
 ---
 name: multi-agent
-description: Use when a task benefits from parallel workers (Operator/Coder/Supervisor) with Director-only spawning (max_depth=1) and schema-validated inputs/outputs, plus optional Auditor review.
+description: Use when a task benefits from Swarm-first parallel workers with Broker-only spawning (`max_depth=1`), schema-validated messages, and explicit ownership locks.
 ---
 
-# Multi-Agent (vNext)
+# Multi-Agent (Swarm-First)
 
 ## Path conventions
 
 All paths in this skill are relative to the **skill root** (the directory that contains this `SKILL.md`).
 
-In Codex, locate the skill root using the runtime’s skills list (it provides the absolute path to this `SKILL.md`), then open `PLAYBOOK.md` in the same directory.
+In Codex, locate the skill root using the runtime skills list (it provides the absolute path to this `SKILL.md`), then open `PLAYBOOK.md` in the same directory.
 
 ## Objective
 
-Provide a reliable, auditable workflow for multi-agent execution: explicit routing, explicit ownership, evidence-backed verification, and optional Auditor review.
+Provide a reliable, auditable Swarm-first workflow for multi-agent execution: ticket-board scheduling, explicit ownership, evidence-backed verification, and optional quality review.
+
+## Role terminology
+
+Concept roles are used for protocol clarity:
+
+- **Broker**: the main thread.
+- **Runner**: command and investigation worker (`agent_type="runner"`).
+- **Builder**: write-capable worker (`agent_type="builder"`).
+- **Inspector**: review worker (`agent_type="inspector"`).
 
 ## When to use
 
-- The task is non-trivial and benefits from parallelizable slices (especially mixed read/write work).
-- You need strict spawn topology guarantees (no same-level spawn) and schema-validated messages.
-- The Director is uncertain and wants fast parallel probes with evidence.
+- The task is non-trivial and benefits from parallel slices (especially mixed read/write work).
+- You need strict spawn topology guarantees and schema-validated messages.
+- The Broker needs wait-any replenishment instead of a fixed linear pipeline.
 
 ## Inputs
 
-- Task goal, scope, constraints (including no-go areas).
+- Task goal, scope, and constraints (including no-go areas).
 - Routing decision: `single` or `multi` (90s rule).
-- Slice ownership scopes (write slices must be disjoint).
-- Minimum acceptable verification evidence.
+- Ownership scopes for write slices (must be disjoint in-flight).
+- Minimum verification evidence expected before closeout.
 
 ## Hard gates (non-negotiable)
 
 - Short-circuit unless `route="multi"` (no spawns in `single`).
-- `route="multi"` is Supervisor-first and must include at least one Supervisor Planning slice (`slice_kind="work"`) before any non-director worker slice (`operator`, `coder_*`, `auditor`, `supervisor`) in the same workstream is scheduled.
-- Director must not write repo content in `multi` (no `apply_patch`, no file edits). All repo writes — including “integration/merge/conflict resolution” — must be delegated to a `coder_*` slice or the Supervisor Merge slice (`slice_kind="merge"`).
-- Supervisor workstreams are explicit: launch `1..N` supervisors (N ≥ 1). Use additional supervisors to reduce coordinator overhead and keep coder count bounded; avoid confetti.
-- Enforce coder work efficiency: keep active `coder_*` slices to 12 or fewer in `multi`; prefer Supervisor Merge (`slice_kind="merge"`) for long integration instead of adding additional coder slices.
-- Enforce brokered spawning (requires runtime `max_depth=1`):
-  - Director is the only role that uses collab tools (`spawn_agent`, `wait`, `send_input`, `close_agent`).
-  - Director spawns depth=1 children only: `operator`, `coder_spark` (fallback `coder_codex`), optional `auditor`, and `agent_type="supervisor"`.
-  - No same-level or cross-level spawn is possible under this topology.
-- Enforce the repo-write gate: only `coder_*` and Supervisor Merge (`agent_type="supervisor"`, `slice_kind="merge"`) implement repo changes.
+- There is no mandatory planning gate or workstream-first ordering.
+- Enforce brokered spawning (`max_depth=1`): only the Broker uses collab tools (`spawn_agent`, `wait`, `send_input`, `close_agent`).
+- In `multi`, Broker never writes repo content (`apply_patch` or direct edits are prohibited).
+- All repo writes are delegated to `agent_type="builder"` slices.
 - Enforce ownership locks for write slices (no overlapping `ownership_paths` in-flight).
+- Enforce wait-any replenishment (no spawn-wave + wait-all scheduling).
 - Close completed children to avoid thread starvation.
 
 ## How to use
 
-Read `PLAYBOOK.md` and follow it literally for the mandatory Supervisor Planning and supervisor workstream details.
+Read `PLAYBOOK.md` and follow it literally for ticket-board lifecycle, lane caps, and handoff handling.
 
 ## Outputs
 
-- Schema-valid worker results (`operator`, `coder`, `supervisor`) and optional Auditor review.
+- Schema-valid worker results (`runner`, `builder`, `inspector`) using JSON-only payloads.
 
 ## Notes
 
-- This skill intentionally removes the Orchestrator role. The Director plans + schedules directly.
-- Council defaults are documented in [`COUNCIL.md`](COUNCIL.md) (bootstrap wave + dual-window templates).
-- Schemas are structural; invariants live in the playbook.
+- This skill uses a Swarm-first protocol: dynamic ticket generation plus brokered handoffs.
+- Council defaults are documented in [`COUNCIL.md`](COUNCIL.md) as optional bootstrap templates.
+- Schemas are structural; invariants live in the playbook and e2e validator.
 
 ## Quick reference
 
@@ -63,21 +68,19 @@ Read `PLAYBOOK.md` and follow it literally for the mandatory Supervisor Planning
 - Council protocol: `COUNCIL.md`
 - Dispatch schema: `schemas/task-dispatch.schema.json` (`schema="task-dispatch/1"`, JSON-only `spawn_agent.message`)
 - Worker result schemas:
-  - `schemas/worker-result.operator.schema.json` (`schema="worker-result.operator/1"`)
-  - `schemas/worker-result.coder.schema.json` (`schema="worker-result.coder/1"`)
-- `supervisor` schema:
-  - `schemas/worker-result.supervisor.schema.json` (`schema="worker-result.supervisor/1"`)
-- Auditor schema: `schemas/review-result.auditor.schema.json` (`schema="review-result.auditor/1"`)
+  - `schemas/worker-result.runner.schema.json` (`schema="worker-result.runner/1"`)
+  - `schemas/worker-result.builder.schema.json` (`schema="worker-result.builder/1"`)
+- Inspector schema: `schemas/review-result.inspector.schema.json` (`schema="review-result.inspector/1"`)
 - `ssot_id` generator: `tools/make_ssot_id.py`
 - Council bootstrap helper: `tools/make_council_bootstrap.py`
 - Dev-only smoke (skills repo only): `python3 dev/multi-agent/e2e/run_smoke.py`
 
 ## Common mistakes
 
-- Non-Director spawning (impossible under `max_depth=1`, but still a common prompt mistake).
-- Dispatch message not being JSON-only `task-dispatch/1`.
-- Worker outputs in markdown/code fences are invalid; all worker results and dispatches must be raw JSON-only (no surrounding ``` fences).
-- “Wait-all” behavior: spawn a wave then idle-wait instead of wait-any replenishment.
-- “Spawn-then-stop” behavior: returning/exiting while any child is still in-flight (must keep polling `functions.wait` until children are finished + closed, or explicitly mark blocked).
+- Non-Broker spawning (impossible under `max_depth=1`, but still a common prompt mistake).
+- Dispatch payload not being JSON-only `task-dispatch/1`.
+- Worker outputs in markdown/code fences; all worker outputs and dispatches must be raw JSON-only.
+- Wait-all behavior instead of wait-any replenishment.
+- Returning while any child remains in-flight.
 - Forgetting to `close_agent` for completed children.
-- Over-splitting (coordination overhead > work).
+- Over-splitting into micro-slices where coordination dominates useful work.

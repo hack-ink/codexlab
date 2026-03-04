@@ -1,14 +1,16 @@
 {
-  "schema": "review-result.auditor/1",
+  "schema": "review-result.inspector/1",
   "ssot_id": "e2e-write-4aeb119f4748",
   "task_id": "e2e-write_mixed",
-  "role": "auditor",
+  "role": "inspector",
   "verdict": "PASS",
   "summary": "Evidence is sufficient and invariants are stated clearly.",
   "findings": [
-    { "severity": "info", "message": "max_depth=1 broker prevents same-level spawns by construction." }
+    {
+      "severity": "info",
+      "message": "max_depth=1 broker prevents same-level spawns by construction."
+    }
   ],
   "required_fixes": [],
   "required_evidence": []
 }
-

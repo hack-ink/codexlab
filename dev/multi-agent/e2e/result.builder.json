@@ -1,0 +1,62 @@
+{
+  "schema": "worker-result.builder/1",
+  "ssot_id": "e2e-write-4aeb119f4748",
+  "task_id": "e2e-write_mixed",
+  "slice_id": "builder-01",
+  "role": "builder",
+  "agent_type": "builder",
+  "status": "done",
+  "summary": "Implemented Swarm-first schema and fixture updates, then validated locally.",
+  "allowed_paths": [
+    "multi-agent/",
+    "dev/multi-agent/"
+  ],
+  "changeset": {
+    "touched_paths": [
+      "multi-agent/schemas/task-dispatch.schema.json",
+      "dev/multi-agent/e2e/validate_payloads.py"
+    ],
+    "notes": [
+      "Removed legacy linear gating assumptions.",
+      "Added handoff_requests coverage in worker result fixtures."
+    ]
+  },
+  "verification": [
+    {
+      "cmd": "python3 dev/multi-agent/e2e/run_smoke.py",
+      "cwd": "<repo_root>",
+      "exit_code": 0,
+      "stdout_excerpt": "OK: e2e fixtures + invariants"
+    }
+  ],
+  "handoff_requests": [
+    {
+      "schema": "task-dispatch/1",
+      "ssot_id": "e2e-write-4aeb119f4748",
+      "task_id": "e2e-write_mixed",
+      "slice_id": "inspector-final",
+      "agent_type": "inspector",
+      "slice_kind": "review",
+      "timebox_minutes": 6,
+      "allowed_paths": [],
+      "ownership_paths": [],
+      "dependencies": [
+        "builder-01"
+      ],
+      "task_contract": {
+        "goal": "Review final evidence bundle and return PASS/BLOCK/NEEDS_EVIDENCE.",
+        "acceptance": [
+          "Findings tie to concrete verification evidence."
+        ],
+        "constraints": [
+          "Review-only output.",
+          "No repository edits."
+        ],
+        "no_touch": []
+      },
+      "evidence_requirements": [
+        "review_notes"
+      ]
+    }
+  ]
+}

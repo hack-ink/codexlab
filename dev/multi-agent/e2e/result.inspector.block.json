@@ -1,0 +1,18 @@
+{
+  "schema": "review-result.inspector/1",
+  "ssot_id": "e2e-write-4aeb119f4748",
+  "task_id": "e2e-write_mixed",
+  "role": "inspector",
+  "verdict": "BLOCK",
+  "summary": "Missing verification evidence for builder slice.",
+  "findings": [
+    {
+      "severity": "major",
+      "message": "No verification commands were provided."
+    }
+  ],
+  "required_fixes": [
+    "Add at least one verification command result (exit_code + excerpt)."
+  ],
+  "required_evidence": []
+}

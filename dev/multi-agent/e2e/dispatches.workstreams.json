@@ -1,56 +1,88 @@
 [
   {
     "schema": "task-dispatch/1",
-    "ssot_id": "ws2-dev-workstreams-03c2909a",
-    "task_id": "supervisor-first-workstreams",
-    "slice_id": "ws2-dev--supervisor-plan",
-    "agent_type": "supervisor",
-    "slice_kind": "work",
-    "timebox_minutes": 4,
+    "ssot_id": "ws2-dev-swarm-0d26dfd05c80",
+    "task_id": "swarm-ticket-flow",
+    "slice_id": "swarm--runner-inventory",
+    "agent_type": "runner",
+    "slice_kind": "probe",
+    "timebox_minutes": 5,
     "allowed_paths": [],
     "ownership_paths": [],
     "dependencies": [],
     "task_contract": {
-      "goal": "Plan workstreams for a supervisor-first implementation effort.",
+      "goal": "Inventory current protocol files and identify split boundaries.",
       "acceptance": [
-        "Emit an ordered set of slices aligned to the supervisor-first model.",
-        "Avoid forbidden roles and ensure all downstream slices depend on the supervisor plan slice."
+        "List candidate write lanes with ownership boundaries.",
+        "List initial dependency edges for safe scheduling."
       ],
       "constraints": [
-        "Return only dispatch metadata, no execution commands.",
-        "No absolute paths in any contract fields."
+        "Read-only.",
+        "No repository edits."
       ],
       "no_touch": []
     },
     "evidence_requirements": [
-      "dispatch_plan"
+      "commands",
+      "files_read"
     ]
   },
   {
     "schema": "task-dispatch/1",
-    "ssot_id": "ws2-dev-workstreams-03c2909a",
-    "task_id": "supervisor-first-workstreams",
-    "slice_id": "ws2-dev--coder-setup",
-    "agent_type": "coder_spark",
+    "ssot_id": "ws2-dev-swarm-0d26dfd05c80",
+    "task_id": "swarm-ticket-flow",
+    "slice_id": "swarm--runner-dependency-map",
+    "agent_type": "runner",
+    "slice_kind": "work",
+    "timebox_minutes": 6,
+    "allowed_paths": [],
+    "ownership_paths": [],
+    "dependencies": [],
+    "task_contract": {
+      "goal": "Map runnable ticket order and lock collision risks.",
+      "acceptance": [
+        "Return dependency graph for the first write wave.",
+        "Call out any ownership collisions that must be avoided."
+      ],
+      "constraints": [
+        "Read-only.",
+        "No repository edits."
+      ],
+      "no_touch": []
+    },
+    "evidence_requirements": [
+      "commands"
+    ]
+  },
+  {
+    "schema": "task-dispatch/1",
+    "ssot_id": "ws2-dev-swarm-0d26dfd05c80",
+    "task_id": "swarm-ticket-flow",
+    "slice_id": "swarm--builder-protocol-docs",
+    "agent_type": "builder",
     "slice_kind": "work",
     "timebox_minutes": 12,
     "allowed_paths": [
-      "dev/multi-agent/e2e/"
+      "multi-agent/SKILL.md",
+      "multi-agent/PLAYBOOK.md",
+      "multi-agent/COUNCIL.md"
     ],
     "ownership_paths": [
-      "dev/multi-agent/e2e/dispatches.workstreams.json"
+      "multi-agent/SKILL.md",
+      "multi-agent/PLAYBOOK.md",
+      "multi-agent/COUNCIL.md"
     ],
     "dependencies": [
-      "ws2-dev--supervisor-plan"
+      "swarm--runner-inventory"
     ],
     "task_contract": {
-      "goal": "Create and stage initial fixture skeleton for workstream dispatches.",
+      "goal": "Update protocol docs to Swarm-first guidance.",
       "acceptance": [
-        "Fixture file exists and is formatted as a JSON array.",
-        "Slice includes initial path and ownership constraints."
+        "Docs remove linear plan-first gating.",
+        "Docs describe wait-any replenishment and ownership locks."
       ],
       "constraints": [
-        "Only touch the owned fixture path."
+        "Only edit owned paths."
       ],
       "no_touch": []
     },
@@ -60,144 +92,158 @@
   },
   {
     "schema": "task-dispatch/1",
-    "ssot_id": "ws2-dev-workstreams-03c2909a",
-    "task_id": "supervisor-first-workstreams",
-    "slice_id": "ws2-dev--coder-validate",
-    "agent_type": "coder_spark",
+    "ssot_id": "ws2-dev-swarm-0d26dfd05c80",
+    "task_id": "swarm-ticket-flow",
+    "slice_id": "swarm--builder-schemas",
+    "agent_type": "builder",
     "slice_kind": "work",
     "timebox_minutes": 12,
     "allowed_paths": [
-      "multi-agent/schemas/"
+      "multi-agent/schemas/",
+      "multi-agent/tools/make_council_bootstrap.py"
     ],
     "ownership_paths": [
-      "multi-agent/schemas/task-dispatch.schema.json"
+      "multi-agent/schemas/",
+      "multi-agent/tools/make_council_bootstrap.py"
     ],
     "dependencies": [
-      "ws2-dev--supervisor-plan"
+      "swarm--runner-dependency-map"
     ],
     "task_contract": {
-      "goal": "Verify workstream fixture payloads validate against task-dispatch schema.",
+      "goal": "Update schemas and bootstrap tooling for Swarm-first contracts.",
       "acceptance": [
-        "All dispatch items pass jsonschema validation.",
-        "No schema-required fields are missing."
+        "Dispatch and worker-result schemas validate.",
+        "No legacy agent types remain."
       ],
       "constraints": [
-        "No edits beyond fixtures and schema checks."
+        "Only edit owned paths."
       ],
       "no_touch": []
     },
     "evidence_requirements": [
-      "jq_validate"
+      "diff",
+      "verification"
     ]
   },
   {
     "schema": "task-dispatch/1",
-    "ssot_id": "ws2-dev-workstreams-03c2909a",
-    "task_id": "supervisor-first-workstreams",
-    "slice_id": "ws2-dev--coder-fix",
-    "agent_type": "coder_codex",
+    "ssot_id": "ws2-dev-swarm-0d26dfd05c80",
+    "task_id": "swarm-ticket-flow",
+    "slice_id": "swarm--builder-e2e",
+    "agent_type": "builder",
     "slice_kind": "work",
     "timebox_minutes": 12,
     "allowed_paths": [
-      "dev/multi-agent/e2e/"
+      "dev/multi-agent/"
     ],
     "ownership_paths": [
-      "dev/multi-agent/e2e/result.auditor.pass.json"
+      "dev/multi-agent/"
     ],
     "dependencies": [
-      "ws2-dev--supervisor-plan"
+      "swarm--builder-protocol-docs",
+      "swarm--builder-schemas"
     ],
     "task_contract": {
-      "goal": "Adjust related e2e expectations for a new workstream fixture scenario.",
+      "goal": "Update e2e fixtures and validator for Swarm-first behavior.",
       "acceptance": [
-        "Result fixtures describe the same slice set and dependency shape."
+        "Fixtures validate against updated schemas.",
+        "No legacy linear gating invariants remain."
       ],
       "constraints": [
-        "Keep edits limited to the e2e fixture set."
+        "Only edit owned paths."
       ],
       "no_touch": []
     },
     "evidence_requirements": [
-      "files_read"
+      "diff",
+      "verification"
     ]
   },
   {
     "schema": "task-dispatch/1",
-    "ssot_id": "ws2-dev-workstreams-03c2909a",
-    "task_id": "supervisor-first-workstreams",
-    "slice_id": "ws2-dev--operator-probe",
-    "agent_type": "operator",
-    "slice_kind": "probe",
-    "timebox_minutes": 4,
-    "allowed_paths": [],
-    "ownership_paths": [],
-    "dependencies": [
-      "ws2-dev--supervisor-plan"
-    ],
-    "task_contract": {
-      "goal": "Check that no forbidden roles are introduced in the fixture.",
-      "acceptance": [
-        "Return whether director/orchestrator are absent."
-      ],
-      "constraints": [
-        "Read-only.",
-        "Do not modify repository content."
-      ],
-      "no_touch": []
-    },
-    "evidence_requirements": [
-      "commands"
-    ]
-  },
-  {
-    "schema": "task-dispatch/1",
-    "ssot_id": "ws2-dev-workstreams-03c2909a",
-    "task_id": "supervisor-first-workstreams",
-    "slice_id": "ws2-dev--operator-check",
-    "agent_type": "operator",
+    "ssot_id": "ws2-dev-swarm-0d26dfd05c80",
+    "task_id": "swarm-ticket-flow",
+    "slice_id": "swarm--builder-nix",
+    "agent_type": "builder",
     "slice_kind": "work",
-    "timebox_minutes": 6,
-    "allowed_paths": [],
-    "ownership_paths": [],
+    "timebox_minutes": 10,
+    "allowed_paths": [
+      "home/codex/config.toml",
+      "home/codex.nix"
+    ],
+    "ownership_paths": [
+      "home/codex/config.toml",
+      "home/codex.nix"
+    ],
     "dependencies": [
-      "ws2-dev--supervisor-plan"
+      "swarm--runner-inventory"
     ],
     "task_contract": {
-      "goal": "Inspect all slice_ids and confirm global uniqueness and prefix invariants.",
+      "goal": "Remove legacy coding agent wiring from nix-managed codex config.",
       "acceptance": [
-        "Report duplicate-free slice_id list.",
-        "All non-supervisor slices depend on the plan slice."
+        "No legacy coding agent references remain.",
+        "max_depth stays unchanged."
       ],
       "constraints": [
-        "Read-only."
+        "Only edit owned paths."
       ],
       "no_touch": []
     },
     "evidence_requirements": [
-      "commands"
+      "diff"
     ]
   },
   {
     "schema": "task-dispatch/1",
-    "ssot_id": "ws2-dev-workstreams-03c2909a",
-    "task_id": "supervisor-first-workstreams",
-    "slice_id": "ws2-dev--auditor-quick",
-    "agent_type": "auditor",
+    "ssot_id": "ws2-dev-swarm-0d26dfd05c80",
+    "task_id": "swarm-ticket-flow",
+    "slice_id": "swarm--runner-verify",
+    "agent_type": "runner",
+    "slice_kind": "work",
+    "timebox_minutes": 8,
+    "allowed_paths": [],
+    "ownership_paths": [],
+    "dependencies": [
+      "swarm--builder-e2e",
+      "swarm--builder-nix"
+    ],
+    "task_contract": {
+      "goal": "Run smoke checks and grep gates for protocol completion.",
+      "acceptance": [
+        "Smoke script passes.",
+        "Legacy coding agent references are absent in target paths."
+      ],
+      "constraints": [
+        "Read-only verification only."
+      ],
+      "no_touch": []
+    },
+    "evidence_requirements": [
+      "commands",
+      "verification"
+    ]
+  },
+  {
+    "schema": "task-dispatch/1",
+    "ssot_id": "ws2-dev-swarm-0d26dfd05c80",
+    "task_id": "swarm-ticket-flow",
+    "slice_id": "swarm--inspector-premortem",
+    "agent_type": "inspector",
     "slice_kind": "review",
     "timebox_minutes": 8,
     "allowed_paths": [],
     "ownership_paths": [],
     "dependencies": [
-      "ws2-dev--supervisor-plan"
+      "swarm--runner-dependency-map"
     ],
     "task_contract": {
-      "goal": "Perform a targeted policy review of the new workstream plan.",
+      "goal": "Review split safety and evidence requirements before final verification.",
       "acceptance": [
-        "Confirm scope, ownership, and evidence requirements are coherent."
+        "High-risk collisions are called out.",
+        "Required evidence gates are explicit."
       ],
       "constraints": [
-        "Only report findings.",
-        "No changes to fixture payloads."
+        "Review-only output."
       ],
       "no_touch": []
     },
@@ -207,64 +253,31 @@
   },
   {
     "schema": "task-dispatch/1",
-    "ssot_id": "ws2-dev-workstreams-03c2909a",
-    "task_id": "supervisor-first-workstreams",
-    "slice_id": "ws2-dev--coder-final",
-    "agent_type": "coder_codex",
-    "slice_kind": "work",
-    "timebox_minutes": 12,
-    "allowed_paths": [
-      "dev/multi-agent/e2e/"
-    ],
-    "ownership_paths": [
-      "dev/multi-agent/e2e/dispatches.workstreams.json"
-    ],
-    "dependencies": [
-      "ws2-dev--supervisor-plan"
-    ],
-    "task_contract": {
-      "goal": "Finalize payload shape so every item validates under task-dispatch/1.",
-      "acceptance": [
-        "All required fields are present.",
-        "JSON payload validates via `jq` and schema checks."
-      ],
-      "constraints": [
-        "No schema edits.",
-        "No edits outside e2e fixtures."
-      ],
-      "no_touch": []
-    },
-    "evidence_requirements": [
-      "diff",
-      "jq_validate"
-    ]
-  },
-  {
-    "schema": "task-dispatch/1",
-    "ssot_id": "ws2-dev-workstreams-03c2909a",
-    "task_id": "supervisor-first-workstreams",
-    "slice_id": "ws2-dev--operator-final",
-    "agent_type": "operator",
-    "slice_kind": "merge",
-    "timebox_minutes": 6,
+    "ssot_id": "ws2-dev-swarm-0d26dfd05c80",
+    "task_id": "swarm-ticket-flow",
+    "slice_id": "swarm--inspector-final",
+    "agent_type": "inspector",
+    "slice_kind": "review",
+    "timebox_minutes": 8,
     "allowed_paths": [],
     "ownership_paths": [],
     "dependencies": [
-      "ws2-dev--supervisor-plan"
+      "swarm--runner-verify",
+      "swarm--inspector-premortem"
     ],
     "task_contract": {
-      "goal": "Assemble evidence index and final integration status.",
+      "goal": "Review final evidence and issue PASS/BLOCK/NEEDS_EVIDENCE verdict.",
       "acceptance": [
-        "Summarize validation artifacts and report pass/fail.",
-        "State if any constraints were violated."
+        "Findings map to concrete evidence.",
+        "Final verdict is explicit and actionable."
       ],
       "constraints": [
-        "Read-only and reporting only."
+        "Review-only output."
       ],
       "no_touch": []
     },
     "evidence_requirements": [
-      "commands"
+      "review_notes"
     ]
   }
 ]

@@ -64,60 +64,30 @@ def make_dispatch(
 def build_council_bootstrap(
     scenario: str,
     task_id: str,
-    supervisor_count: int,
-    depend_on_supervisors: bool,
-    include_auditor: bool,
-    include_operator_mapper: bool,
-    supervisor_timebox: int,
-    operator_timebox: int,
-    auditor_timebox: int,
+    depend_on_runner: bool,
+    include_inspector: bool,
+    include_runner_mapper: bool,
+    include_builder_planner: bool,
+    runner_timebox: int,
+    inspector_timebox: int,
+    builder_timebox: int,
     hex_len: int,
 ) -> list[dict]:
     ssot_id = make_ssot_id(scenario, hex_len=hex_len)
     prefix = f"{scenario}-council"
     dispatches: list[dict] = []
-    supervisor_ids = [f"{prefix}-supervisor-{i:02d}" for i in range(1, supervisor_count + 1)]
-    operator_auditor_dependencies = (
-        supervisor_ids if depend_on_supervisors else []
-    )
 
-    for i in range(1, supervisor_count + 1):
+    runner_slice_id = ""
+    if include_runner_mapper:
+        runner_slice_id = f"{prefix}-runner-mapper"
         dispatches.append(
             make_dispatch(
                 ssot_id=ssot_id,
                 task_id=task_id,
-                slice_id=f"{prefix}-supervisor-{i:02d}",
-                agent_type="supervisor",
+                slice_id=runner_slice_id,
+                agent_type="runner",
                 slice_kind="work",
-                timebox_minutes=supervisor_timebox,
-                goal=(
-                    f"Draft a supervisor plan for the overall task stream {task_id}, "
-                    f"including write ownership boundaries and dependencies."
-                ),
-                acceptance=[
-                    "Emit a dispatch plan in task-dispatch/1 format.",
-                    "Set disjoint ownership for all write slices in the returned plan.",
-                    "Express critical dependencies and blockers clearly.",
-                ],
-                constraints=[
-                    "Read-only planning for the given scenario.",
-                    "No repo writes.",
-                    "Keep role and action scope within task contracts.",
-                ],
-                evidence_requirements=["dispatch_plan"],
-            )
-        )
-
-    if include_operator_mapper:
-        dispatches.append(
-            make_dispatch(
-                ssot_id=ssot_id,
-                task_id=task_id,
-                slice_id=f"{prefix}-operator-mapper",
-                agent_type="operator",
-                slice_kind="work",
-                timebox_minutes=operator_timebox,
-                dependencies=operator_auditor_dependencies,
+                timebox_minutes=runner_timebox,
                 goal="Map ownership boundaries and dependency risks for safe parallel scheduling.",
                 acceptance=[
                     "Return ownership map and collision risks.",
@@ -131,16 +101,20 @@ def build_council_bootstrap(
             )
         )
 
-    if include_auditor:
+    followup_dependencies: list[str] = []
+    if depend_on_runner and runner_slice_id:
+        followup_dependencies = [runner_slice_id]
+
+    if include_inspector:
         dispatches.append(
             make_dispatch(
                 ssot_id=ssot_id,
                 task_id=task_id,
-                slice_id=f"{prefix}-auditor-pre-mortem",
-                agent_type="auditor",
+                slice_id=f"{prefix}-inspector-pre-mortem",
+                agent_type="inspector",
                 slice_kind="review",
-                timebox_minutes=auditor_timebox,
-                dependencies=operator_auditor_dependencies,
+                timebox_minutes=inspector_timebox,
+                dependencies=followup_dependencies,
                 goal="Run a pre-mortem protocol review of planned dispatch topology.",
                 acceptance=[
                     "Flag high coupling risks, ownership clashes, and sequencing hazards.",
@@ -154,59 +128,81 @@ def build_council_bootstrap(
             )
         )
 
+    if include_builder_planner:
+        dispatches.append(
+            make_dispatch(
+                ssot_id=ssot_id,
+                task_id=task_id,
+                slice_id=f"{prefix}-builder-planner",
+                agent_type="builder",
+                slice_kind="work",
+                timebox_minutes=builder_timebox,
+                dependencies=followup_dependencies,
+                goal="Draft concrete follow-up coding ticket candidates for the broker queue.",
+                acceptance=[
+                    "Return proposed task-dispatch tickets via handoff_requests or structured notes.",
+                    "Keep ownership paths disjoint and dependency-aware.",
+                ],
+                constraints=[
+                    "Planning-only output.",
+                    "No repository writes.",
+                ],
+                evidence_requirements=["analysis", "handoff_requests"],
+            )
+        )
+
     return dispatches
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Generate council-bootstrap task-dispatch fixtures."
+        description="Generate Swarm council-bootstrap task-dispatch fixtures."
     )
     parser.add_argument("scenario", help="Scenario slug, e.g. pack-configs-pubfi-cli")
     parser.add_argument("--task-id", default="council-route", help="Task identifier.")
     parser.add_argument(
-        "--supervisor-count",
-        type=int,
-        default=2,
-        help="Number of supervisor planning waves.",
-    )
-    parser.add_argument(
-        "--supervisor-timebox-minutes",
-        type=int,
-        default=10,
-        help="timebox for supervisor plan slices.",
-    )
-    parser.add_argument(
-        "--no-operator-mapper",
+        "--no-runner-mapper",
         action="store_false",
-        dest="operator_mapper",
+        dest="runner_mapper",
         default=True,
-        help="Disable operator mapper slice.",
+        help="Disable runner mapper slice.",
     )
     parser.add_argument(
-        "--operator-timebox-minutes",
+        "--runner-timebox-minutes",
         type=int,
         default=6,
-        help="timebox for operator mapper slice.",
+        help="timebox for runner mapper slice.",
     )
     parser.add_argument(
-        "--no-auditor",
+        "--no-inspector",
         action="store_false",
-        dest="auditor",
+        dest="inspector",
         default=True,
-        help="Disable auditor pre-mortem slice.",
+        help="Disable inspector pre-mortem slice.",
     )
     parser.add_argument(
-        "--auditor-timebox-minutes",
+        "--inspector-timebox-minutes",
         type=int,
         default=8,
-        help="timebox for auditor pre-mortem slice.",
+        help="timebox for inspector pre-mortem slice.",
     )
     parser.add_argument(
-        "--depend-on-supervisors",
+        "--include-builder-planner",
+        action="store_true",
+        help="Include an optional builder planning slice (planning-only, no writes).",
+    )
+    parser.add_argument(
+        "--builder-timebox-minutes",
+        type=int,
+        default=8,
+        help="timebox for optional builder planner slice.",
+    )
+    parser.add_argument(
+        "--depend-on-runner",
         action="store_true",
         help=(
-            "If set, operator/auditor slices depend on every supervisor slice."
-            " Useful for conservative serialization; default keeps the bootstrap wave parallel."
+            "If set, inspector/builder planner slices depend on runner mapper. "
+            "Default keeps the bootstrap wave parallel."
         ),
     )
     parser.add_argument(
@@ -237,20 +233,23 @@ def main(argv: list[str]) -> int:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 2
 
-    if args.supervisor_count < 1:
-        print("ERROR: --supervisor-count must be >= 1", file=sys.stderr)
+    if not (args.runner_mapper or args.inspector or args.include_builder_planner):
+        print(
+            "ERROR: at least one slice must be enabled (runner, inspector, or builder planner)",
+            file=sys.stderr,
+        )
         return 2
 
     dispatches = build_council_bootstrap(
         scenario=args.scenario,
         task_id=args.task_id,
-        supervisor_count=args.supervisor_count,
-        depend_on_supervisors=args.depend_on_supervisors,
-        include_auditor=args.auditor,
-        include_operator_mapper=args.operator_mapper,
-        supervisor_timebox=args.supervisor_timebox_minutes,
-        operator_timebox=args.operator_timebox_minutes,
-        auditor_timebox=args.auditor_timebox_minutes,
+        depend_on_runner=args.depend_on_runner,
+        include_inspector=args.inspector,
+        include_runner_mapper=args.runner_mapper,
+        include_builder_planner=args.include_builder_planner,
+        runner_timebox=args.runner_timebox_minutes,
+        inspector_timebox=args.inspector_timebox_minutes,
+        builder_timebox=args.builder_timebox_minutes,
         hex_len=args.hex_len,
     )
 
@@ -264,10 +263,7 @@ def main(argv: list[str]) -> int:
     else:
         with open(args.output, "w", encoding="utf-8") as fp:
             fp.write(payload)
-            if args.format == "array":
-                fp.write("\n")
-            else:
-                fp.write("\n")
+            fp.write("\n")
     return 0
 
 
