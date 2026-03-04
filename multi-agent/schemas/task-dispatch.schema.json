@@ -32,6 +32,8 @@
       "enum": ["probe", "work", "review", "merge"],
       "default": "work"
     },
+    "work_package_id": { "type": "string", "minLength": 1 },
+    "expected_work_s": { "type": "integer", "minimum": 0 },
     "timebox_minutes": { "type": "integer", "minimum": 1, "maximum": 60 },
     "allowed_paths": {
       "type": "array",
@@ -85,6 +87,8 @@
       "slice_id": "builder-1",
       "agent_type": "builder",
       "slice_kind": "work",
+      "work_package_id": "pkg-builder-1",
+      "expected_work_s": 480,
       "timebox_minutes": 12,
       "allowed_paths": ["multi-agent/"],
       "ownership_paths": ["multi-agent/schemas/"],

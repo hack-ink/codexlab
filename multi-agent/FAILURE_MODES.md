@@ -28,9 +28,12 @@ Symptoms:
 - tickets are <2 minutes but require heavy coordination
 - frequent duplicate handoff requests
 - repeated lock conflicts due to sloppy ownership partitioning
+- ticket storm: dispatch count keeps rising while net completed work per ticket stays low
+- dispatch overhead dominates runtime (wait-any refill latency is mostly scheduling round-trips)
 
 Fix:
 
-- merge micro-slices into one coherent Builder ticket per owned area
+- merge micro-slices into coherent Builder work packages per owned area
+- reduce initial Builder package count and expand only after first-wave evidence
+- enforce per-worker handoff budget; request merged packages when budget is exceeded
 - keep Runner probes broad and few, not a swarm of tiny greps
-

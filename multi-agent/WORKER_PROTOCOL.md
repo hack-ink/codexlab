@@ -11,6 +11,7 @@ Hard constraints:
 ## Swarm-first defaults (all workers)
 
 - Prefer returning **handoff requests** (new tickets) over expanding scope.
+- Prefer package-sized handoffs over micro-slice follow-ups.
 - Keep tickets small enough to finish inside `timebox_minutes`.
 - Make dependencies explicit and keep write ownership disjoint.
 - If blocked, say exactly what evidence/decision is needed to unblock.
@@ -20,8 +21,10 @@ Hard constraints:
 - Return concrete evidence (`commands`, `files_read`) for every claim.
 - Propose follow-up tickets for:
   - parallelizable probes
-  - disjoint write ownership partitions for Builder waves
+  - disjoint write ownership partitions for Builder work packages
   - targeted Inspector reviews when risk is high
+- Avoid handoffing micro follow-ups when ownership is unchanged and effective work is under ~3 minutes.
+- Include `work_package_id` and `expected_work_s` for Builder handoffs when estimates are available.
 
 Runner example (including a handoff request):
 
@@ -91,9 +94,11 @@ Runner example (including a handoff request):
 ## Builder checklist
 
 - Stay strictly within `ownership_paths`.
+- Prefer completing micro follow-ups inside the current package when ownership and constraints are unchanged.
 - If you discover cross-cutting work:
   - stop expanding scope
   - propose schema-valid handoff requests with disjoint ownership
+- Emit new Builder handoffs only when ownership must split or package scope would exceed the timebox.
 - Return verification evidence (`verification`) and a tight `git_diff` summary.
 
 ## Inspector checklist

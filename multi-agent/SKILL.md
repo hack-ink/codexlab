@@ -46,7 +46,7 @@ Concept roles are used for protocol clarity:
 - All repo writes are delegated to `agent_type="builder"` slices.
 - Enforce ownership locks for write slices (no overlapping `ownership_paths` in-flight).
 - Enforce wait-any replenishment (no spawn-wave + wait-all scheduling).
-- Close completed children to avoid thread starvation.
+- Keep workers warm and reuse via `send_input` with JSON-only `task-dispatch/1`; close only on rotation, failure recovery, or end-of-run cleanup.
 
 ## How to use
 
@@ -72,7 +72,7 @@ If `route="multi"` and the task is uncertain, mixed read/write, or likely to exc
 
 - Playbook: `PLAYBOOK.md`
 - Council protocol: `COUNCIL.md`
-- Dispatch schema: `schemas/task-dispatch.schema.json` (`schema="task-dispatch/1"`, JSON-only `spawn_agent.message`)
+- Dispatch schema: `schemas/task-dispatch.schema.json` (`schema="task-dispatch/1"`, JSON-only for both `spawn_agent.message` and `send_input.message`)
 - Worker result schemas:
   - `schemas/worker-result.runner.schema.json` (`schema="worker-result.runner/1"`)
   - `schemas/worker-result.builder.schema.json` (`schema="worker-result.builder/1"`)
@@ -88,5 +88,5 @@ If `route="multi"` and the task is uncertain, mixed read/write, or likely to exc
 - Worker outputs in markdown/code fences; all worker outputs and dispatches must be raw JSON-only.
 - Wait-all behavior instead of wait-any replenishment.
 - Returning while any child remains in-flight.
-- Forgetting to `close_agent` for completed children.
+- Closing workers too early, causing avoidable cold-start latency for follow-up slices.
 - Over-splitting into micro-slices where coordination dominates useful work.

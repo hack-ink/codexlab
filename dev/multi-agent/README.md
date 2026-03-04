@@ -10,6 +10,14 @@ From the repo root:
 python3 dev/multi-agent/e2e/run_smoke.py
 ```
 
+## Backtests
+
+Deterministic scheduler simulations live under `dev/multi-agent/backtests/`.
+
+```sh
+python3 dev/multi-agent/backtests/run_backtests.py
+```
+
 ## Docs
 
 - Broker interactive e2e: `dev/multi-agent/BROKER_E2E.md`

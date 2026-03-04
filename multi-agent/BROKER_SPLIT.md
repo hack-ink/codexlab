@@ -19,6 +19,15 @@ Prefer sequential when none apply:
 - one-pass mechanical transformations
 - tightly coupled edits requiring continuous shared context
 
+## Work packages (default)
+
+Use Builder work packages as the primary split unit.
+
+- A work package is one Builder ticket that bundles a coherent ownership-scoped implementation sequence (implement + verify + report).
+- Micro follow-ups (effective work under ~3 minutes) should be merged into an existing package when ownership and constraints stay compatible.
+- Cap initial Builder package fan-out at 4; expand only after evidence from the first wave.
+- Keep `handoff_requests` budget at 3 or fewer per worker; if above budget, propose merged packages instead of more slices.
+
 ## Dedup fingerprint hygiene
 
 - Keep `slice_id` unique per ticket board entry; do not emit duplicate `slice_id` values for retried or alternative drafts.
@@ -46,7 +55,8 @@ Boundary map (Runner):
     "acceptance": [
       "Return a proposed partition of ownership paths for safe parallel Builder tickets.",
       "Return a dependency DAG between tickets (what must be done first, what can run in parallel).",
-      "List any lock-collision risks and how to avoid them."
+      "List any lock-collision risks and how to avoid them.",
+      "Propose package-sized Builder tickets (up to 4 initial packages) with merged micro follow-ups."
     ],
     "constraints": [
       "Read-only investigation only.",
@@ -73,6 +83,8 @@ Write wave (Builder):
   "agent_type": "builder",
   "slice_kind": "work",
   "timebox_minutes": 12,
+  "work_package_id": "pkg-ownership-A",
+  "expected_work_s": 540,
   "allowed_paths": [],
   "ownership_paths": [
     "<SET_ME_disjoint_ownership_paths>"
@@ -81,12 +93,15 @@ Write wave (Builder):
   "task_contract": {
     "goal": "Implement the scoped change set strictly within the owned paths, with verification evidence.",
     "acceptance": [
-      "All edits stay within ownership paths (or return a split handoff request if cross-cutting work is required).",
-      "Return verification evidence (tests/linters/builds) that are relevant to the change."
+      "Package checklist: implement scoped edits within ownership paths.",
+      "Package checklist: run relevant verification for this package.",
+      "Package checklist: report diff summary + verification evidence in one result.",
+      "All edits stay within ownership paths (or return a split handoff request if cross-cutting work is required)."
     ],
     "constraints": [
       "Write only within ownership paths.",
-      "If new work is discovered, return schema-valid handoff requests instead of expanding scope."
+      "If new work is discovered, return schema-valid handoff requests instead of expanding scope.",
+      "Do not emit micro follow-up handoffs when ownership remains the same; merge into this package."
     ],
     "no_touch": []
   },

@@ -8,7 +8,7 @@ It is intentionally separate from `dev/multi-agent/e2e/run_smoke.py`, which vali
 
 - Verify the Broker routing gate (the 90-second rule) is applied consistently.
 - Verify the `max_depth=1` broker topology and spawn allowlists are respected in practice.
-- Verify ticket-board scheduling uses wait-any replenishment and closes completed children.
+- Verify ticket-board scheduling uses wait-any replenishment with reuse-first warm workers.
 - Verify optional Inspector review works for write/mixed runs.
 
 ## Preconditions
@@ -81,6 +81,46 @@ Pass criteria:
 
 - Broker continues progress while other runnable work exists.
 - If a slice fails or stalls beyond timeout, run retries safely or exits as blocked with explicit evidence.
+
+## Test D - Reuse-first eliminates after_short delay
+
+Goal: confirm dependency replenishment uses `send_input` on a warm worker, instead of cold-start spawning.
+
+1. Set a unique base path in `/tmp`, for example:
+   - `/tmp/swarmbench-live-<id>/wait_any/`
+2. Spawn two builder slices at the same time:
+   - `long` (~60s): write `long.start`, sleep, then `long.done`
+   - `short` (~5s): write `short.start`, sleep, then `short.done`
+3. When `short` completes:
+   - do **not** `close_agent` for that builder
+   - dispatch `after_short` (~10s) via `send_input` to the **same** builder `agent_id`
+   - write `after_short.start`, sleep, then `after_short.done`
+4. Continue wait-any polling until all slices complete.
+
+Minimal command payloads for Builder slices:
+
+```sh
+mkdir -p /tmp/swarmbench-live-<id>/wait_any/alpha \
+  && date +%s > /tmp/swarmbench-live-<id>/wait_any/alpha/long.start \
+  && sleep 60 \
+  && date +%s > /tmp/swarmbench-live-<id>/wait_any/alpha/long.done
+
+mkdir -p /tmp/swarmbench-live-<id>/wait_any/beta \
+  && date +%s > /tmp/swarmbench-live-<id>/wait_any/beta/short.start \
+  && sleep 5 \
+  && date +%s > /tmp/swarmbench-live-<id>/wait_any/beta/short.done
+
+mkdir -p /tmp/swarmbench-live-<id>/wait_any/gamma \
+  && date +%s > /tmp/swarmbench-live-<id>/wait_any/gamma/after_short.start \
+  && sleep 10 \
+  && date +%s > /tmp/swarmbench-live-<id>/wait_any/gamma/after_short.done
+```
+
+Pass criteria:
+
+- `after_short.start < long.done` (dependency refill overlaps with `long`)
+- TUI log shows `send_input` between `short` completion and `after_short` dispatch
+- TUI log shows no `spawn_agent` for that handoff transition
 
 ## Notes
 

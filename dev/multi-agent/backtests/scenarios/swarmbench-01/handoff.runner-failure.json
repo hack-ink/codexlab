@@ -1,0 +1,32 @@
+[
+  {
+    "schema": "task-dispatch/1",
+    "ssot_id": "swarmbench-01-a89a470b619a",
+    "task_id": "swarmbench-01-backtest",
+    "slice_id": "sb01--builder-lock-b",
+    "agent_type": "builder",
+    "timebox_minutes": 6,
+    "allowed_paths": [
+      "/tmp/swarmbench-01/shared/assets"
+    ],
+    "ownership_paths": [
+      "/tmp/swarmbench-01/shared/assets"
+    ],
+    "dependencies": [
+      "sb01--runner-failure"
+    ],
+    "task_contract": {
+      "goal": "Run a second shared-path builder slice.",
+      "acceptance": [
+        "Waits until the first shared slice releases lock."
+      ],
+      "constraints": [
+        "Only edit owned paths"
+      ]
+    },
+    "evidence_requirements": [
+      "diff",
+      "verification"
+    ]
+  }
+]

@@ -9,6 +9,7 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 SKILL_ROOT = REPO_ROOT / "multi-agent"
 SCHEMAS_DIR = SKILL_ROOT / "schemas"
 E2E_DIR = Path(__file__).resolve().parent
+BACKTESTS_DIR = E2E_DIR.parent / "backtests"
 
 
 def load_json(path: Path) -> dict:
@@ -52,7 +53,15 @@ def main() -> None:
     if proc.returncode != 0:
         raise SystemExit(proc.returncode)
 
-    print("OK: e2e fixtures + invariants")
+    proc = subprocess.run(
+        [sys.executable, str(BACKTESTS_DIR / "run_backtests.py")],
+        check=False,
+        text=True,
+    )
+    if proc.returncode != 0:
+        raise SystemExit(proc.returncode)
+
+    print("OK: e2e fixtures + invariants + backtests")
 
 
 if __name__ == "__main__":

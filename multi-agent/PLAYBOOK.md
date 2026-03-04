@@ -42,7 +42,7 @@ Mandatory ticket fields:
 Board state tracked by Broker:
 
 - `pending`: valid tickets not dispatched yet
-- `inflight`: dispatched tickets not yet completed + closed
+- `inflight`: dispatched tickets not yet completed
 - `done`: completed tickets
 - `blocked`: tickets that cannot run due to dependency, lock, or repeated failure
 
@@ -80,21 +80,43 @@ Do not use spawn-wave then wait-all.
 Broker loop is mandatory:
 
 1. Build runnable set: pending tickets with satisfied dependencies and lock-safe ownership.
-2. Spawn runnable tickets while lane caps allow.
-3. If `inflight` is non-empty, call `functions.wait` (wait-any) with bounded timeout.
-4. On completion:
-   - record worker result
-   - `close_agent`
-   - remove from `inflight`
+2. Track worker state by lane:
+   - `idle_workers[agent_type]`: reusable worker IDs
+   - `inflight`: busy worker IDs plus `worker_id -> slice_id`
+3. Dispatch runnable tickets while lane caps allow:
+   - if `idle_workers[agent_type]` is non-empty, assign via `send_input` using JSON-only `task-dispatch/1`
+   - otherwise `spawn_agent` using JSON-only `task-dispatch/1`
+4. If `inflight` is non-empty, call `functions.wait` (wait-any) with bounded timeout.
+5. On completion:
+   - validate JSON-only/schema-valid worker result
+   - record worker result and mark ticket done
+   - move worker from busy to `idle_workers[agent_type]`
    - immediately refill from `pending`
-5. On timeout:
+6. On timeout:
    - do not exit
    - continue loop
-6. If `pending` is non-empty and `inflight` is empty:
+7. If `pending` is non-empty and `inflight` is empty:
    - mark run `blocked`
    - report cause (dependency cycle, lock deadlock, or dispatch validation failure)
 
-Hard rule: once any worker is spawned, keep polling until all in-flight workers are closed or an explicit blocked state is returned.
+Hard rule: once any worker is spawned, keep polling until no tickets are runnable/in-flight or an explicit blocked state is returned.
+
+`close_agent` is allowed only for:
+
+- rotation
+- failure recovery
+- end-of-run cleanup
+
+### Rotation (default policy)
+
+Rotate a warm worker (close and remove from pool) when either threshold is hit:
+
+- `tickets_handled >= 6`
+- `invalid_output_count >= 2`
+
+### Dispatch-overhead aware
+
+Reuse-first is mandatory. Do not spawn a new worker for tiny follow-up slices when an idle worker exists for that lane.
 
 ## 6) Handoff protocol
 
