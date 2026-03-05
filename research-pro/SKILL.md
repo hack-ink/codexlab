@@ -21,7 +21,9 @@ Get decision-grade research and architecture recommendations from ChatGPT Pro, t
 
 ### Execution + safety (must follow)
 
-1. Prefer a subagent Runner for the Pro consultation; if subagent spawning is unavailable, run in the current thread.
+1. Default to running the Pro consultation in the current thread.
+   - Subagents can be terminated by the runtime before a long Pro run completes, which can look like a hang to the parent.
+   - Use a Runner subagent only for short, bounded steps (navigation + prompt submission) and return early; do not wait for Pro completion inside the subagent.
 2. Treat secrets and private data as sensitive: do not paste tokens, credentials, internal-only identifiers, customer data, or private URLs.
 3. No leaks in web research: do not include sensitive details in any “search log” or “sources” requests to Pro.
 
