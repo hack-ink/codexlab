@@ -17,6 +17,13 @@ Get decision-grade research and architecture recommendations from ChatGPT Pro, t
 - Optional Project name override (default derived as `org/project`).
 - Memory mode: `project-only` (default) or `Default` only if explicitly requested.
 
+## Browser transport
+
+- Treat plain `agent-browser` and `scripts/agent-browser-node.sh` as command-compatible entrypoints.
+- Use plain `agent-browser` only when it is already known-good on the current host.
+- Do **not** add `--native` as a generic fix. `--native` only changes daemon mode; it does not guarantee a different global entrypoint, and a running daemon can ignore it.
+- For long-lived Project flows, flaky native hosts, or any run where you need deterministic Node/Playwright behavior, prefer `scripts/agent-browser-node.sh`.
+
 ## Hard gates
 
 ### Execution + safety (must follow)
@@ -25,12 +32,15 @@ Get decision-grade research and architecture recommendations from ChatGPT Pro, t
    - Subagents can be terminated by the runtime before a long Pro run completes, which can look like a hang to the parent.
    - Use a Runner subagent only for short, bounded steps (navigation + prompt submission) and return early; do not wait for Pro completion inside the subagent.
    - Single-flight: do not start a second Pro run until the current one is completed or explicitly aborted.
+   - Once the target Project is ready and prompt submission is in scope, stop using short probe scripts that exit the browser between steps. Keep one continuous browser session alive through prompt submission, polling, and extraction.
    - If a Runner subagent is used, do not close/replace it just because it is quiet; wait patiently and avoid starting a new Pro chat “because it seems stuck”.
    - If a Runner subagent is used, have it return `conversation_url` as soon as it exists (after prompt submission) so the parent can take over polling.
    - If the Runner subagent is interrupted/terminated, assume ChatGPT may still be generating in the background:
      - First, attach to the existing browser session and recover the URL via `agent-browser --session-name research-pro get url`.
      - If the URL already contains `/c/`, treat it as the canonical `conversation_url` and resume polling; do not start a new chat.
      - Only start a new chat after you have evidence the existing conversation cannot be recovered or is explicitly aborted.
+   - If `agent-browser` itself is unhealthy before page interaction starts (for example trivial local commands like `--help`, `session list`, `get url`, or a minimal `open` hang/fail), treat that as a client/daemon transport failure, not as a ChatGPT page problem.
+   - In that case, fall back to direct Playwright control using the same `research-pro` Chrome profile directory and keep that browser context alive for the rest of the run. Reuse any existing Project or conversation you already created; do not restart from scratch unless the session is unrecoverable.
    - Active-generation controls are authoritative. Do not treat partial output, a visible `Copy` button, or the absence of progress text as completion while `Stop streaming`, `Continue generating`, `Update`, or equivalent active-generation controls remain.
    - Exact reattach rule: if the canonical `conversation_url` still resolves to a live `/c/` thread and `snapshot -i -C` shows `Model selector, current model is 5.4 Pro`, `Extended Pro`, and a live `Stop streaming` control, the consultation is definitively `in_progress`, not complete, even if a `Copy` button and partial assistant text are visible.
 2. Treat secrets and private data as sensitive: do not paste tokens, credentials, internal-only identifiers, customer data, or private URLs.
@@ -42,6 +52,7 @@ Get decision-grade research and architecture recommendations from ChatGPT Pro, t
 5. Use headed browser automation for ChatGPT (`--headed --args "--disable-blink-features=AutomationControlled"`), with session reuse via `--session-name research-pro` and a dedicated profile path via `--profile ~/.agent-browser/profiles/research-pro` (absolute path preferred).
    - Avoid relative profile paths: they change with `cwd` and can load the wrong persisted login state.
    - Keep session/profile identifiers aligned to the skill name (`research-pro`) for recognizability.
+   - `scripts/agent-browser-node.sh` is the supported drop-in fallback when you need to force the JS wrapper / Node daemon / Playwright path.
 6. Use project name format `org/project` unless the user explicitly overrides this rule.
 7. Derive project name in this order:
    - explicit user value (validate format),
@@ -82,9 +93,11 @@ Ask Pro to follow this workflow and to be explicit about evidence:
 
 1. Open ChatGPT in headed mode and verify login.
    - Recommended invocation: `agent-browser --headed --args "--disable-blink-features=AutomationControlled" --session-name research-pro --profile ~/.agent-browser/profiles/research-pro open https://chatgpt.com`
+   - Stable Node/Playwright fallback: `scripts/agent-browser-node.sh --headed --args "--disable-blink-features=AutomationControlled" --session-name research-pro --profile ~/.agent-browser/profiles/research-pro open https://chatgpt.com`
    - Use a dedicated absolute profile directory and a session name aligned to the skill name (`research-pro`); relative profile paths vary by `cwd` and can reuse the wrong browser state.
    - If the CLI reports `--args ignored: daemon already running`, the existing browser daemon is being reused; run `agent-browser close` first when you need a fresh launch with new args.
    - During reattach/polling, do not treat a busy-daemon or similar transient CLI warning as completion. Reuse the existing session, recover `conversation_url`, and continue polling the same thread.
+   - If the plain `agent-browser` client/daemon path is the thing that is broken, switch to `scripts/agent-browser-node.sh` with the same args and profile before dropping all the way to custom Playwright automation.
 2. If login is required, pause for manual login/MFA and continue after success.
 
 ### C) Open or create the target Project (with correct memory at creation)
@@ -93,6 +106,7 @@ Ask Pro to follow this workflow and to be explicit about evidence:
    - If you see `Open sidebar`, click it.
    - If `Open sidebar` is not visible because the sidebar is hover-revealed, move the mouse to the top-left (for example: `agent-browser mouse move 10 10`), run `snapshot -i -C` again, then click `Open sidebar`.
    - Prefer `snapshot -i -C` while working in the sidebar because Project/sidebar entries can be cursor-interactive.
+   - Do not trust raw text presence alone. ChatGPT can leave sidebar/project text in the DOM while the visible control is collapsed or not currently actionable; confirm state with clickable snapshots, screenshots, and actual URL/state changes.
 2. Take `snapshot -i -C`.
 3. Find/click existing project first.
    - If clicking the Project link is blocked by overlays, take a non-interactive `snapshot` (without `-i`) to capture the Project link `/url: ...`, then run `agent-browser open <that-url>` in the same `research-pro` session/profile started in step B.
@@ -105,6 +119,7 @@ Ask Pro to follow this workflow and to be explicit about evidence:
    - Use `find text "New project"` plus `snapshot -i -C` patterns when needed.
 5. On project creation, set memory during creation:
    - In the `Create project` dialog, click the unlabeled expand button next to the title (it reveals the `Memory` radio group).
+   - The dialog may contain hidden inputs, including file inputs. Do not target generic `input` refs blindly; interact only with the title field, the expand/settings control, and the explicit memory radio options.
    - Select `Project-only` (or `Default` only if explicitly requested).
 
 ### D) Start a fresh chat + set Pro thinking
@@ -122,9 +137,11 @@ Ask Pro to follow this workflow and to be explicit about evidence:
 1. Submit the prompt.
 2. Immediately capture and persist `conversation_url` (single-flight lock):
    - Run `agent-browser get url` and treat that as the canonical `conversation_url`.
+   - If the run is using Playwright fallback instead of `agent-browser`, capture the live page URL directly from that browser context and treat it as the canonical `conversation_url`.
    - If navigation breaks or UI drifts, reopen `conversation_url` instead of starting a new chat.
 3. Poll every 180 seconds until completion:
    - There is no fixed polling budget or max cycle count. The same turn keeps polling until the completion gate passes, the run is explicitly aborted, or a real `needs-user-action` blocker is reached.
+   - Keep the same browser context open while polling. Do not revert to "probe, close, reopen" once prompt submission is in scope.
    - Completion gate: do not treat partial visible assistant text, a visible `Copy` button, or missing progress text as completion while `Stop streaming`, `Continue generating`, `Update`, or equivalent active-generation controls are still present.
    - Reattach gate: if `agent-browser --session-name research-pro get url` still returns the same `/c/` thread and `snapshot -i -C` shows `Model selector, current model is 5.4 Pro`, `Extended Pro`, and `Stop streaming`, the consultation is still active. Keep polling in the same turn. Use `status=in_progress` only when an explicit interruption, checkpoint, or continuity handoff is required.
    - If polling hits a transient `agent-browser` failure (busy daemon, snapshot failure, temporary transport error, or session hiccup), recover the existing session first:
@@ -179,6 +196,7 @@ ChatGPT UI can change. Do not hardcode brittle selectors as the only path. When 
    - Ensure sidebar is visible (hover top-left if needed) and retry.
    - If a Project is under `More`, open the `More` menu and select the `menuitem "<project-name>"`.
    - If clicking is blocked, use `/url: ...` from non-interactive `snapshot` and `agent-browser open <that-url>`.
+   - If DOM text and rendered UI disagree, trust rendered/clickable evidence over hidden text nodes: `snapshot -i -C`, annotated screenshots, URL transitions, and actual control-state changes.
 3. **Stop conditions**
    - After a small number of retries (2–3), return `status=needs-user-action` and include the evidence pack in the handoff so the next LLM run can patch the workflow.
 
