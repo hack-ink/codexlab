@@ -30,6 +30,10 @@
       "enum": ["probe", "work", "review"],
       "default": "work"
     },
+    "review_mode": {
+      "type": "string",
+      "enum": ["spec_compliance", "code_quality", "final_closeout"]
+    },
     "work_package_id": { "type": "string", "minLength": 1 },
     "timebox_minutes": { "type": "integer", "minimum": 1, "maximum": 60 },
     "ownership_paths": {
@@ -116,6 +120,20 @@
         "properties": {
           "ownership_paths": { "maxItems": 0 }
         }
+      }
+    },
+    {
+      "if": { "properties": { "agent_type": { "const": "inspector" } } },
+      "then": {
+        "properties": {
+          "review_mode": {
+            "type": "string",
+            "enum": ["spec_compliance", "code_quality", "final_closeout"]
+          }
+        }
+      },
+      "else": {
+        "not": { "required": ["review_mode"] }
       }
     }
   ]

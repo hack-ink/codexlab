@@ -551,6 +551,13 @@ def assert_result_matches_dispatch(
             label=label,
         )
 
+    if agent_type == "inspector":
+        if dispatch.get("review_mode") != payload.get("review_mode"):
+            raise AssertionError(
+                f"{label}: review_mode must match the originating dispatch"
+            )
+        return
+
     if agent_type != "builder":
         return
 
@@ -895,6 +902,34 @@ def assert_negative_regressions(
         ),
         label="result.inspector.pass.json.missing_review_notes",
         expected_substring="missing evidence payload",
+    )
+
+    inspector_missing_review_mode = clone_payload(
+        load_json(E2E_DIR / "result.inspector.pass.json")
+    )
+    inspector_missing_review_mode.pop("review_mode", None)
+    assert_rejected(
+        lambda: assert_result_matches_dispatch(
+            inspector_missing_review_mode,
+            dispatches_by_key,
+            label="result.inspector.pass.json.missing_review_mode",
+        ),
+        label="result.inspector.pass.json.missing_review_mode",
+        expected_substring="review_mode must match",
+    )
+
+    inspector_mismatched_review_mode = clone_payload(
+        load_json(E2E_DIR / "result.inspector.pass.json")
+    )
+    inspector_mismatched_review_mode["review_mode"] = "code_quality"
+    assert_rejected(
+        lambda: assert_result_matches_dispatch(
+            inspector_mismatched_review_mode,
+            dispatches_by_key,
+            label="result.inspector.pass.json.mismatched_review_mode",
+        ),
+        label="result.inspector.pass.json.mismatched_review_mode",
+        expected_substring="review_mode must match",
     )
 
     legacy_builder_missing_work_package = make_legacy_role_result(

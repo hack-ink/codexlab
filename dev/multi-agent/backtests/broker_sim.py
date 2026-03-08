@@ -237,6 +237,7 @@ class BrokerSimulator:
             },
             "completed_slice_ids": list(self.completed_order),
             "event_count": len(self.events),
+            "events": list(self.events),
         }
 
     def _all_done(self) -> bool:
@@ -595,6 +596,7 @@ class BrokerSimulator:
             "task_id",
             "agent_type",
             "slice_kind",
+            "review_mode",
             "work_package_id",
             "timebox_minutes",
             "ownership_paths",
@@ -649,6 +651,7 @@ class BrokerSimulator:
             "task_id": dispatch["task_id"],
             "agent_type": dispatch["agent_type"],
             "slice_kind": dispatch["slice_kind"],
+            "review_mode": dispatch.get("review_mode"),
             "work_package_id": dispatch.get("work_package_id"),
             "dependencies": dispatch["dependencies"],
             "ownership_paths": dispatch["ownership_paths"],

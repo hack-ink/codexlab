@@ -4,6 +4,7 @@
   "task_id": "multi-ticket-flow",
   "slice_id": "multi--inspector-final",
   "verdict": "NEEDS_EVIDENCE",
+  "review_mode": "final_closeout",
   "summary": "Need one more concrete proof point before the final review can pass.",
   "review_notes": [
     "The final evidence bundle is close, but it still lacks a concrete verification artifact for the runtime helper behavior."

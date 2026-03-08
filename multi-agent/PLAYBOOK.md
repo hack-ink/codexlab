@@ -42,6 +42,8 @@ Mandatory ticket fields:
 - `agent_type`, `slice_kind`, `timebox_minutes`
 - `dependencies`
 - `task_contract.goal`, `task_contract.acceptance`, `task_contract.constraints`
+- Broker should pack enough task context into `task_contract` for the worker to execute without reconstructing plan intent from broad repo rereads. If a worker must reread a plan or broad design doc, say so explicitly in the ticket.
+- Inspector tickets that participate in ordered review gates should set `review_mode`. Leave `review_mode` unset for pre-mortems or other review slices that are not part of a named gate sequence.
 - Builder tickets additionally require `work_package_id` and non-empty `ownership_paths`
 - Runner and Inspector tickets must omit `ownership_paths` or leave it empty; both mean no write lock
 - Worker result schemas use `agent_type` as the canonical identity field; legacy `/1` result payloads may still use `role` as an identity alias only, and new outputs should emit `agent_type`
@@ -59,6 +61,13 @@ Board state tracked by Broker:
 - `inflight`: dispatched tickets not yet completed
 - `done`: completed tickets
 - `blocked`: tickets that cannot run due to dependency, lock, or repeated failure
+
+Parent task/work-package state is Broker-local bookkeeping, not a new wire-level schema field:
+
+- A Builder ticket returning `done` means the implementation slice finished, not that the parent task or work package is ready to advance.
+- The Broker may track derived parent states such as `awaiting_builder`, `awaiting_required_review`, `ready_to_advance`, and `blocked`, but these remain scheduler-local concepts rather than `task-dispatch/1` or worker-result fields.
+- If Inspector gates are required, the parent task/work package is only complete after the required review slices pass.
+- Downstream or closeout advancement must not treat Builder success alone as sufficient when required Inspector gates are still open.
 
 ## 3) Write ownership and locks
 
@@ -104,6 +113,7 @@ Broker loop is mandatory:
 5. On completion:
    - validate JSON-only/schema-valid worker result
    - record worker result and mark ticket done
+   - if the completed ticket opens or blocks required review gates, update the Broker-local parent task/work package bookkeeping before advancing downstream work
    - move worker from busy to `idle_workers[agent_type]`
    - immediately refill from `pending`
 6. On timeout:
@@ -229,6 +239,14 @@ If worker exceeds `timebox_minutes`:
 - Default for write/mixed runs: run Inspector review before final closeout.
 - Read-only runs: Inspector is optional unless outcome is high impact.
 - Cap review loops with `audit_max_rounds = 5`.
+- Treat Inspector as a mode-driven review lane, not a second role system:
+  - `spec_compliance`: verify the implementation matches the requested scope, call out missing requirements, and flag extra/unrequested behavior.
+  - `code_quality`: review the accepted scope for maintainability, safety, testing, and implementation quality.
+  - `final_closeout`: review the whole board for cross-slice gaps before final closeout.
+- `review_mode` is the canonical wire-level transport for the ordered Inspector gate names above. Pre-mortem or exploratory Inspector slices may omit it.
+- If both `spec_compliance` and `code_quality` are required, run `spec_compliance` first. Do not start `code_quality` while spec gaps are still open.
+- If Inspector finds issues on a required gate, route the same work package (or a narrowed follow-up under the same parent) back to Builder, then re-run the relevant Inspector gate before advancing.
+- Final closeout for write/mixed runs should prefer a whole-board Inspector pass, not only per-package spot checks.
 
 ## 12) `ssot_id` policy
 

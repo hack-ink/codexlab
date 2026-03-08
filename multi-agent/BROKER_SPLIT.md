@@ -19,6 +19,11 @@ Prefer sequential when none apply:
 - tasks that should stay scout-first until the Broker has enough evidence
 - one-pass mechanical transformations where a single Builder package is cleaner than fanout
 
+Quick admissibility examples:
+
+- Safe to parallelize: unrelated ownership paths, independent dependency branches, or separate failing subsystems where one fix is unlikely to change the others.
+- Keep sequential: same-file edits, shared state, broad refactors, or failure clusters where one root cause may collapse the whole set.
+
 ## Work packages (default)
 
 Use Builder work packages as the primary split unit.
@@ -43,6 +48,12 @@ Serial scout-first execution is still a valid `multi` run.
 - Keep `slice_id` unique per ticket board entry; do not emit duplicate `slice_id` values for retried or alternative drafts.
 - When proposing near-duplicate handoff tickets, assume Broker dedup compares normalized execution scope (`schema`, `ssot_id`, `task_id`, `agent_type`, `slice_kind`, sorted dependencies, normalized path lists).
 - If the intended work is distinct, make that distinction explicit in dependencies, paths, or `task_contract` constraints instead of changing only `slice_id`.
+
+## Inspector gate transport
+
+- Use `review_mode` on Inspector tickets that participate in ordered gates: `spec_compliance`, `code_quality`, or `final_closeout`.
+- Keep `review_mode` unset for pre-mortems or other exploratory Inspector slices.
+- When both quality gates are required for the same parent work package, dispatch `spec_compliance` first and only enqueue `code_quality` after the spec gate passes.
 
 ## Dispatch templates (schema-valid)
 
@@ -133,6 +144,39 @@ Pre-mortem (Inspector):
     "acceptance": [
       "List the highest-risk failure modes (locks, missing tests, unclear acceptance).",
       "Specify required evidence gates before closeout."
+    ],
+    "constraints": [
+      "Review-only output.",
+      "No repo writes."
+    ]
+  },
+  "evidence_requirements": [
+    "review_notes"
+  ]
+}
+```
+
+Gate review (Inspector):
+
+```json
+{
+  "schema": "task-dispatch/1",
+  "ssot_id": "scenario-hash-5277daf391c2",
+  "task_id": "example-task",
+  "slice_id": "review--spec-compliance--pkg-ownership-A",
+  "agent_type": "inspector",
+  "slice_kind": "review",
+  "review_mode": "spec_compliance",
+  "timebox_minutes": 8,
+  "dependencies": [
+    "wave1--builder-ownership-A"
+  ],
+  "task_contract": {
+    "goal": "Verify that pkg-ownership-A fully matches the requested scope and does not introduce unrequested behavior.",
+    "acceptance": [
+      "Call out missing requirements before downstream advancement.",
+      "Flag extra or unrequested behavior explicitly.",
+      "State whether Builder follow-up plus re-review is required."
     ],
     "constraints": [
       "Review-only output.",

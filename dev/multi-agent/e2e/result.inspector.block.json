@@ -4,6 +4,7 @@
   "task_id": "multi-ticket-flow",
   "slice_id": "multi--inspector-final",
   "verdict": "BLOCK",
+  "review_mode": "final_closeout",
   "summary": "The final evidence bundle is missing the verification proof needed to close the builder slices.",
   "review_notes": [
     "The final review ticket expected a complete evidence bundle, but the verification proof for the builder work packages is still missing."

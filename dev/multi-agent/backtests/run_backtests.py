@@ -107,6 +107,62 @@ def assert_expectations(
                 f"{scenario_id}: completed slices mismatch: expected={expected_set}, got={actual_set}"
             )
 
+    must_start_after_done = expectations.get("must_start_after_done", [])
+    if must_start_after_done:
+        if not isinstance(must_start_after_done, list):
+            raise AssertionError(f"{scenario_id}: must_start_after_done must be a list")
+        for index, pair in enumerate(must_start_after_done, 1):
+            if (
+                not isinstance(pair, list)
+                or len(pair) != 2
+                or not all(isinstance(value, str) and value for value in pair)
+            ):
+                raise AssertionError(
+                    f"{scenario_id}: must_start_after_done[{index}] must be "
+                    "[start_slice_id, completed_slice_id]"
+                )
+            start_slice_id, completed_slice_id = pair
+            start_index, start_time = find_event_position_and_time(
+                wait_any["events"],
+                slice_id=start_slice_id,
+                event_name="start",
+                scenario_id=scenario_id,
+            )
+            done_index, done_time = find_event_position_and_time(
+                wait_any["events"],
+                slice_id=completed_slice_id,
+                event_name="done",
+                scenario_id=scenario_id,
+            )
+            if start_time < done_time or (
+                start_time == done_time and start_index <= done_index
+            ):
+                raise AssertionError(
+                    f"{scenario_id}: expected {start_slice_id} to start after "
+                    f"{completed_slice_id} completed, got start_index={start_index} "
+                    f"start_t={start_time}s done_index={done_index} done_t={done_time}s"
+                )
+
+
+def find_event_position_and_time(
+    events: list[dict[str, Any]],
+    *,
+    slice_id: str,
+    event_name: str,
+    scenario_id: str,
+) -> tuple[int, int]:
+    for index, event in enumerate(events):
+        if event.get("event") == event_name and event.get("slice_id") == slice_id:
+            timestamp = event.get("t")
+            if not isinstance(timestamp, int):
+                raise AssertionError(
+                    f"{scenario_id}: event {event_name!r} for {slice_id!r} must have integer t"
+                )
+            return index, timestamp
+    raise AssertionError(
+        f"{scenario_id}: missing event {event_name!r} for slice_id={slice_id!r}"
+    )
+
 
 def derive_route(
     *,
@@ -386,6 +442,61 @@ def assert_negative_regressions() -> None:
             "work_package_id differs"
         )
     print("PASS: regression.work_package_identity")
+
+    review_mode_scenario_dir = SCENARIOS_DIR / "swarmbench-03-review-gates"
+    review_mode_scenario = load_json(review_mode_scenario_dir / "scenario.json")
+    review_mode_simulator = BrokerSimulator(
+        review_mode_scenario_dir, review_mode_scenario, mode="wait_any"
+    )
+    review_mode_simulator.handoff_requests_by_slice = {}
+    review_mode_dispatches = load_json(
+        review_mode_scenario_dir / "dispatches.initial.json"
+    )
+    review_mode_copy = clone_payload(review_mode_dispatches[1])
+    review_mode_copy["slice_id"] = "sb03--inspector-spec-copy"
+    review_mode_copy["review_mode"] = "code_quality"
+    review_mode_simulator.initial_dispatches = [
+        clone_payload(review_mode_dispatches[0]),
+        clone_payload(review_mode_dispatches[1]),
+        review_mode_copy,
+    ]
+    review_mode_simulator.durations_s["sb03--inspector-spec-copy"] = 1
+    review_mode_result = review_mode_simulator.run()
+    if review_mode_result["status"] != "completed":
+        raise AssertionError(
+            "regression.review_mode_identity: expected completed run, got "
+            f"{review_mode_result['status']!r}"
+        )
+    if review_mode_result["dedup_merged"] != 0:
+        raise AssertionError(
+            "regression.review_mode_identity: divergent review_mode values "
+            f"must not merge (dedup_merged={review_mode_result['dedup_merged']})"
+        )
+    completed_ids = set(review_mode_result["completed_slice_ids"])
+    if {"sb03--inspector-spec", "sb03--inspector-spec-copy"} - completed_ids:
+        raise AssertionError(
+            "regression.review_mode_identity: both inspector slices must complete "
+            "when review_mode differs"
+        )
+    print("PASS: regression.review_mode_identity")
+
+    review_mode_same_slice_simulator = BrokerSimulator(
+        review_mode_scenario_dir, review_mode_scenario, mode="wait_any"
+    )
+    review_mode_same_slice_simulator.handoff_requests_by_slice = {}
+    review_mode_same_slice_conflict = clone_payload(review_mode_dispatches[1])
+    review_mode_same_slice_conflict["review_mode"] = "code_quality"
+    review_mode_same_slice_simulator.initial_dispatches = [
+        clone_payload(review_mode_dispatches[0]),
+        clone_payload(review_mode_dispatches[1]),
+        review_mode_same_slice_conflict,
+    ]
+    assert_rejected(
+        review_mode_same_slice_simulator.run,
+        label="regression.review_mode_same_slice_merge",
+        expected_substring="cannot merge divergent field 'review_mode'",
+    )
+    print("PASS: regression.review_mode_same_slice_merge")
 
     retry_scenario = load_json(scenario_dir / "scenario.json")
     retry_simulator = BrokerSimulator(scenario_dir, retry_scenario, mode="wait_any")

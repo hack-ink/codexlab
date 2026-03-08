@@ -172,6 +172,7 @@
     "slice_id": "multi--inspector-final",
     "agent_type": "inspector",
     "slice_kind": "review",
+    "review_mode": "final_closeout",
     "timebox_minutes": 8,
     "dependencies": [
       "multi--runner-verify"

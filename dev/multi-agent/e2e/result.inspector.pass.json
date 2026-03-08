@@ -4,6 +4,7 @@
   "task_id": "multi-ticket-flow",
   "slice_id": "multi--inspector-final",
   "verdict": "PASS",
+  "review_mode": "final_closeout",
   "summary": "Evidence is sufficient and invariants are stated clearly.",
   "review_notes": [
     "Checked the final evidence bundle against the two-state routing and ownership-lock rules."

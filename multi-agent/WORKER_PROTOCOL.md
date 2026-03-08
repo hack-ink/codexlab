@@ -15,6 +15,7 @@ Hard constraints:
 - Prefer returning **handoff requests** (new tickets) over expanding scope.
 - Prefer package-sized handoffs over micro-slice follow-ups.
 - Keep tickets small enough to finish inside `timebox_minutes`.
+- Treat the Broker dispatch as the source of scope and intent. Do not reconstruct plan intent from broad repo rereads unless the ticket explicitly tells you to inspect those files.
 - Make dependencies explicit and keep write ownership disjoint.
 - If blocked, say exactly what evidence/decision is needed to unblock.
 - When `status` is `blocked` or `partial`, return schema-valid structured recovery data instead of free-form prose:
@@ -127,6 +128,13 @@ Runner example (including a handoff request):
   - missing evidence gates
   - ownership/lock collisions across Builder tickets
   - schema-invalid outputs or non-JSON output risks
+- Use `review_mode` when the dispatch carries one:
+  - `spec_compliance`: check whether requested scope is complete, identify missing requirements, and flag extra/unrequested behavior.
+  - `code_quality`: review the accepted scope for maintainability, safety, testing, and implementation quality.
+  - `final_closeout`: review cross-slice consistency and unresolved board-level risks before closeout.
+- Echo `review_mode` in the Inspector result when the ticket used one so the Broker can validate gate ordering unambiguously.
+- Preserve gate ordering when multiple Inspector modes are required: `spec_compliance` first, `code_quality` second.
+- When required review finds issues, make it clear that Builder follow-up plus re-review is still required before the parent task/work package can advance.
 - Return `review_notes` when review evidence is requested.
 - Prefer structured findings with `severity`, `message`, and optional `category`, `confidence`, `evidence`, and `paths`.
 - Prefer short, decisive verdicts with explicit “what evidence would change my mind”.
