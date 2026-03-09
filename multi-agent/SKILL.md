@@ -1,6 +1,6 @@
 ---
 name: multi-agent
-description: Use when a task benefits from two-state routing into Broker-only multi-agent execution (`single` or `multi`), schema-validated messages, and explicit ownership locks.
+description: Use when one task or one PR-sized change stream benefits from two-state routing into Broker-only multi-agent execution (`single` or `multi`), schema-validated messages, and explicit ownership locks.
 ---
 
 # Multi-Agent (Two-State)
@@ -13,7 +13,7 @@ In Codex, locate the skill root using the runtime skills list (it provides the a
 
 ## Objective
 
-Provide a reliable, auditable two-state workflow: stay in one thread only for tiny, clear, low-risk tasks, and use brokered multi-agent execution for everything else. In `multi`, scout-first execution is valid until the Broker has enough evidence to launch owned work packages.
+Provide a reliable, auditable two-state workflow for one task or one PR-sized change stream: stay in one thread only for tiny, clear, low-risk tasks, and use brokered multi-agent execution for everything else in that same stream. In `multi`, scout-first execution is valid until the Broker has enough evidence to launch owned work packages.
 
 ## Role terminology
 
@@ -27,8 +27,11 @@ Concept roles are used for protocol clarity:
 ## When to use
 
 - The task is not tiny, clear, and low-risk enough to stay in `single`, even if useful parallelism is not proven yet.
+- The work belongs to one coherent task, incident, or PR-sized change stream.
 - You need strict spawn topology guarantees and schema-validated messages once `route="multi"` is chosen.
 - The Broker needs wait-any replenishment, ownership locks, or scout-first boundary discovery.
+
+Do not use this skill to coordinate multiple unrelated branches or parallel delivery lanes. Split those into separate branches or worktrees first, then run this skill independently inside each lane if needed.
 
 ## Inputs
 
@@ -46,6 +49,7 @@ Concept roles are used for protocol clarity:
 - Route everything else to `multi`: long tasks, uncertain tasks, risky tasks, or work that needs scout-first boundary discovery.
 - `multi` may begin with a single scout lane; do not wait for proven decomposability before escalating.
 - There is no mandatory planning gate or workstream-first ordering.
+- Do not use one `multi` run to coordinate multiple unrelated tasks, branches, or PR streams.
 - Enforce brokered spawning (`max_depth=1`): only the Broker uses collab tools (`spawn_agent`, `wait`, `send_input`, `close_agent`).
 - In `multi`, Broker never writes repo content (`apply_patch` or direct edits are prohibited).
 - All repo writes are delegated to `agent_type="builder"` slices.

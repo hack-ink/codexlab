@@ -1,6 +1,6 @@
 ---
 name: git-worktrees
-description: Use when starting feature work that benefits from branch isolation, concurrent implementation, or a disposable workspace. Creates Git worktrees with directory selection, ignore verification, repo-native bootstrap, and Rust-aware cache guidance for large local builds.
+description: Use when starting feature work that benefits from branch isolation, independent parallel implementation lanes, or a disposable workspace. Creates Git worktrees with directory selection, ignore verification, repo-native bootstrap, lane naming guidance, and Rust-aware cache guidance for large local builds.
 ---
 
 # Git Worktrees
@@ -11,6 +11,7 @@ Use Git worktrees when you need an isolated branch checkout without disturbing t
 
 Typical triggers:
 
+- Multiple unrelated implementation tasks or PR-like streams on the same repository
 - Parallel feature work on the same repository
 - Executing a plan in a clean branch-specific workspace
 - Hotfix work while the current tree is dirty or mid-refactor
@@ -19,9 +20,26 @@ Typical triggers:
 ## Core rule
 
 - Prefer an existing worktree layout over inventing a new one.
+- When work is independent, default to one worktree per task lane instead of mixing unrelated changes in one branch or one agent run.
 - Keep project-local worktree directories ignored.
 - Use `git worktree` subcommands for lifecycle operations; do not create, move, or delete worktrees by hand unless recovery is required.
 - Run the repository's documented bootstrap and baseline verification after creation.
+
+## Lane model
+
+Treat each worktree as one independent lane:
+
+- One task, branch, and review stream per worktree
+- One agent or human owner at a time unless the lane is explicitly shared
+- Keep unrelated fixes in separate worktrees even if they touch the same repository
+
+Use separate worktrees by default when:
+
+- Two tasks could land as separate PRs
+- One lane may need to be paused, rebased, or abandoned without blocking another
+- You want clean diffs and isolated verification per task
+
+If the work is the same task or the same PR-sized change stream, you may stay on one branch and use other coordination methods inside that lane.
 
 ## Choose the directory
 
@@ -31,7 +49,23 @@ Use this priority order:
 2. If the repository has scoped instructions (`AGENTS.md` or runtime-equivalent guidance), follow any stated worktree location convention.
 3. If there is no existing convention, prefer `.worktrees/` only when it is already ignored or can be safely verified as ignored.
 4. If neither a safe project-local directory nor a documented convention exists, ask the user where worktrees should live instead of inventing a global path.
-5. If you rely on the shared `.worktrees/target` convention below, the worktree directory name must be a single path segment even when the Git branch name contains `/`.
+5. If you rely on the repo-root shared `target/` convention below, the worktree directory name must be a single path segment even when the Git branch name contains `/`.
+
+## Name the lane simply
+
+Keep branch and directory naming predictable instead of encoding full ticket metadata into the path.
+
+- Branch names should follow the repository's existing convention.
+- Worktree directory names should stay short and single-segment.
+- Prefer names that reveal the lane's task at a glance.
+
+Examples:
+
+- Branch `feat/cache-invalidation`, directory `feat-cache-invalidation`
+- Branch `fix/login-timeout`, directory `fix-login-timeout`
+- Branch `chore/release-notes`, directory `chore-release-notes`
+
+If multiple agents or attempts work on the same broad task, keep the branch task-focused and only suffix the directory when needed, for example `feat-cache-invalidation-a` and `feat-cache-invalidation-b`.
 
 ## Safety checks before creation
 
@@ -154,15 +188,15 @@ Temporary patch example:
 ```toml
 # .cargo/config.toml
 [build]
-target-dir = "../target"
+target-dir = "../../target"
 ```
 
 ### Path-resolution constraint
 
 - A tracked `.cargo/config.toml` is checked out into every linked worktree.
 - Relative `build.target-dir` paths are therefore resolved from each checkout's own root, not from Git's common directory.
-- That means a `.worktrees/<worktree-dir-name>`-specific path such as `../target` must **not** be committed as a repository-wide default.
-- The `../target` example assumes the worktree root is exactly one level below `.worktrees/`, so keep the worktree directory name to a single path segment when using this convention.
+- That means a `.worktrees/<worktree-dir-name>`-specific path such as `../../target` must **not** be committed as a repository-wide default.
+- The `../../target` example assumes the worktree root is exactly one level below `.worktrees/`, so keep the worktree directory name to a single path segment when using this convention.
 - For the `.worktrees` layout, keep this as a local temporary patch inside the worktree where it is needed.
 
 ### Practical recommendation for Rust repos
@@ -175,23 +209,54 @@ target-dir = "../target"
 ### `.worktrees` convention
 
 - If active development happens inside `.worktrees/<worktree-dir-name>`, do **not** copy `target/` into the linked worktree.
-- Instead, always point Cargo's output directory at the parent shared `target/` directory under `.worktrees/`.
+- Instead, always point Cargo's output directory back at the repository-root `target/` directory.
 - In this skill, "build directory" means Cargo's `build.target-dir`, not `build.build-dir`.
 - For that layout, the required setting from the linked worktree root is:
 
 ```toml
 [build]
-target-dir = "../target"
+target-dir = "../../target"
 ```
 
 - This convention is for linked worktrees that live directly under `.worktrees/` only. Do not assume the same relative path is correct for the main checkout or for nested worktree paths.
 - Before creating a commit or PR from the worktree, make sure this temporary patch is not included unless the user explicitly requested a repository-wide Rust build policy change.
 
-## Cleanup
+## Closeout / Teardown
 
-- Remove finished worktrees with `git worktree remove`.
-- If the worktree is dirty, inspect it first and do not force-delete without explicit confirmation.
-- If Git reports stale administrative entries, use `git worktree prune` after verifying the missing path is truly gone.
+Use this when a lane is merged, intentionally abandoned, or paused long enough that the checkout should be reclaimed.
+
+Before removal:
+
+- Confirm the lane outcome first: merged, intentionally abandoned, or explicitly paused.
+- Inspect the current state:
+
+```bash
+git status --short
+git rev-parse --abbrev-ref HEAD
+```
+
+- If the lane is expected to be merged, first discover the repo-appropriate, up-to-date integration branch for that lane from repo policy, PR or base-branch context, or Git metadata. Only stop and confirm if multiple plausible target branches remain or the discovered target conflicts with lane intent.
+- Then verify it is not carrying unique commits. Prefer checks such as:
+
+```bash
+git branch --merged <target-branch>
+git log <target-branch>..<branch-name>
+```
+
+- If the worktree contains uncommitted edits, stop and inspect them before any force removal.
+- For Rust lanes under `.worktrees/<worktree-dir-name>`, make sure the worktree-only `.cargo/config.toml` patch (for example `target-dir = "../../target"`) is not staged or committed unless the user explicitly requested a repository-wide policy change.
+
+Teardown flow:
+
+1. Remove the worktree with `git worktree remove <path>`.
+2. Only use `--force` after showing the dirty state and unique-commit risk.
+3. If the branch is no longer needed, delete it separately from another checkout with `git branch -d <branch-name>`.
+4. If Git still reports stale administrative entries, use `git worktree prune` only after verifying the missing path is truly gone.
+
+Notes:
+
+- Worktree removal does not delete branch refs automatically.
+- Do not delete the shared repo-root `target/` directory just because one Rust lane finished; other lanes or the main checkout may still rely on it.
 
 ## Red flags
 

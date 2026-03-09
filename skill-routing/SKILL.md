@@ -37,9 +37,11 @@ description: Use at the start of a task, before clarifying questions, or before 
 Examples:
 
 - "Fix this bug" -> load debugging workflow skills before language- or framework-specific skills.
+- "I have two unrelated implementation tasks in the same repo" -> load `git-worktrees` first so each task gets its own lane.
 - "Write the implementation plan" or a task already running in Plan mode -> load `plan-writing` and produce or update the plan artifact before any code changes.
 - "Execute this plan" or "continue from `docs/plans/...`" -> load `plan-execution` and treat the saved plan as the execution entrypoint.
 - "Build a React dashboard" -> load planning or design process skills first if they apply, then the frontend implementation skill.
+- "This merge/rebase/cherry-pick conflict came from parallel branches or worktrees" -> load `parallel-conflict-resolution`.
 - "Prepare a commit" -> load the pre-commit gate skill before committing or pushing.
 
 ## Flow
