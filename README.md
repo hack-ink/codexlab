@@ -9,6 +9,7 @@ This repository hosts reusable agent skills for Codex workflows.
 - `python-style` - mandatory Python conventions for shared workspace virtualenv setup and Poetry workflow (`python-style/SKILL.md`).
 - `research` - research/investigation workflow that reads existing materials, clarifies unknowns with the user, and makes evidence-backed recommendations with websearch (`research/SKILL.md`).
 - `research-pro` - consult ChatGPT Pro via chatgpt.com Projects for architecture/research decisions, with Pro thinking defaulting to Extended (use Standard/default only when requested), project-only memory set only when creating a new Project, and polling-aware handoff (`research-pro/SKILL.md`).
+- `scrapling` - fallback web-scraping workflow for Scrapling when `curl`, built-in web fetch, or web search tools return incomplete, JS-shell, or bot-blocked content, with static/dynamic/stealth mode selection and CLI/Python/MCP examples (`scrapling/SKILL.md`).
 - `rust-style` - mandatory Rust conventions for scope, toolchain/workflow, safety, formatting, error handling, logging, and ownership (`rust-style/SKILL.md`).
 - `git-worktrees` - worktree setup and lifecycle guidance for isolated branches, safe directory selection, repo-native bootstrap, and Rust-aware build-cache tradeoffs (`git-worktrees/SKILL.md`).
 - `skill-routing` - generic skill-discovery and loading policy that checks for relevant skills before acting, uses the current runtime's loading mechanism, and keeps skill usage minimal and explicit (`skill-routing/SKILL.md`).
