@@ -107,6 +107,22 @@ def assert_expectations(
                 f"{scenario_id}: completed slices mismatch: expected={expected_set}, got={actual_set}"
             )
 
+    expected_terminal_status_by_slice = expectations.get(
+        "expected_terminal_status_by_slice", {}
+    )
+    if expected_terminal_status_by_slice:
+        if not isinstance(expected_terminal_status_by_slice, dict):
+            raise AssertionError(
+                f"{scenario_id}: expected_terminal_status_by_slice must be an object"
+            )
+        for slice_id, expected_status in expected_terminal_status_by_slice.items():
+            actual_status = wait_any["completed_status_by_slice"].get(slice_id)
+            if actual_status != expected_status:
+                raise AssertionError(
+                    f"{scenario_id}: completed_status_by_slice[{slice_id!r}]="
+                    f"{actual_status!r} != {expected_status!r}"
+                )
+
     must_start_after_done = expectations.get("must_start_after_done", [])
     if must_start_after_done:
         if not isinstance(must_start_after_done, list):
@@ -141,6 +157,42 @@ def assert_expectations(
                     f"{scenario_id}: expected {start_slice_id} to start after "
                     f"{completed_slice_id} completed, got start_index={start_index} "
                     f"start_t={start_time}s done_index={done_index} done_t={done_time}s"
+                )
+
+    must_start_after_event = expectations.get("must_start_after_event", [])
+    if must_start_after_event:
+        if not isinstance(must_start_after_event, list):
+            raise AssertionError(f"{scenario_id}: must_start_after_event must be a list")
+        for index, triple in enumerate(must_start_after_event, 1):
+            if (
+                not isinstance(triple, list)
+                or len(triple) != 3
+                or not all(isinstance(value, str) and value for value in triple)
+            ):
+                raise AssertionError(
+                    f"{scenario_id}: must_start_after_event[{index}] must be "
+                    "[start_slice_id, completed_slice_id, event_name]"
+                )
+            start_slice_id, completed_slice_id, event_name = triple
+            start_index, start_time = find_event_position_and_time(
+                wait_any["events"],
+                slice_id=start_slice_id,
+                event_name="start",
+                scenario_id=scenario_id,
+            )
+            event_index, event_time = find_event_position_and_time(
+                wait_any["events"],
+                slice_id=completed_slice_id,
+                event_name=event_name,
+                scenario_id=scenario_id,
+            )
+            if start_time < event_time or (
+                start_time == event_time and start_index <= event_index
+            ):
+                raise AssertionError(
+                    f"{scenario_id}: expected {start_slice_id} to start after "
+                    f"{completed_slice_id} emitted {event_name}, got start_index={start_index} "
+                    f"start_t={start_time}s event_index={event_index} event_t={event_time}s"
                 )
 
 
@@ -442,6 +494,28 @@ def assert_negative_regressions() -> None:
             "work_package_id differs"
         )
     print("PASS: regression.work_package_identity")
+
+    salvage_scenario_dir = SCENARIOS_DIR / "swarmbench-04-salvage"
+    salvage_scenario = load_json(salvage_scenario_dir / "scenario.json")
+    salvage_scope_shift = BrokerSimulator(
+        salvage_scenario_dir, salvage_scenario, mode="wait_any"
+    )
+    salvage_scope_shift.handoff_requests_by_slice = {
+        "sb04--builder-partial": [
+            clone_payload(
+                load_json(salvage_scenario_dir / "handoff.builder-salvage.json")[0]
+            )
+        ]
+    }
+    salvage_scope_shift.handoff_requests_by_slice["sb04--builder-partial"][0][
+        "ownership_paths"
+    ] = ["/tmp/swarmbench-04/reassigned"]
+    assert_rejected(
+        salvage_scope_shift.run,
+        label="regression.salvage_work_package_scope_change",
+        expected_substring="cannot continue with changed ownership_paths",
+    )
+    print("PASS: regression.salvage_work_package_scope_change")
 
     review_mode_scenario_dir = SCENARIOS_DIR / "swarmbench-03-review-gates"
     review_mode_scenario = load_json(review_mode_scenario_dir / "scenario.json")

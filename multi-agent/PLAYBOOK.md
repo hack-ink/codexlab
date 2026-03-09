@@ -231,8 +231,15 @@ If output is non-JSON or schema-invalid:
 If worker exceeds `timebox_minutes`:
 
 1. interrupt and request a schema-shaped checkpoint (`state`, `last_action`, `resume_from`, next 1-3 steps, blocked reason if any)
-2. if still stuck/non-responsive, close and re-dispatch with smaller scope
-3. after repeated stalls, mark `blocked` with evidence
+2. if the stuck worker is a Builder and owned diffs may already have landed locally, switch to salvage/adoption handling before any generic redispatch:
+   - close the original stuck worker before dispatching any follow-up Builder so salvage continues from a single live owner
+   - independently inspect the current workspace state under the Builder's `ownership_paths`; rely on `git diff`, targeted file reads, and fresh verification instead of trusting an interrupted or malformed Builder report
+   - record scheduler-local provenance for the salvage decision: prior `slice_id`, `work_package_id`, why the original Builder result was unusable, what evidence was re-verified, and whether the landed diff is adopted as complete or partial
+   - keep the same parent task and same `work_package_id` only while the follow-up stays under the same `ownership_paths`; mint a new work package when ownership changes
+   - if the landed diff is only partial, dispatch a narrowed Builder follow-up from the current workspace state that covers the remaining work only and explicitly avoids replaying completed side effects
+   - if the landed state cannot be verified independently or ownership is ambiguous, escalate to human takeover or `blocked` instead of speculative adoption
+3. if no Builder salvage path applies, close and re-dispatch with smaller scope
+4. after repeated stalls, mark `blocked` with evidence
 
 ## 11) Inspector policy
 

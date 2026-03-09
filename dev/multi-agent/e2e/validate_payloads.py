@@ -250,6 +250,19 @@ def result_requires_final_evidence(payload: dict, *, agent_type: str) -> bool:
     return True
 
 
+def assert_builder_partial_checkpoint_contract(payload: dict, *, label: str) -> None:
+    if payload.get("status") != "partial":
+        return
+
+    has_verification = bool(payload.get("verification"))
+    required_evidence = payload.get("recovery", {}).get("required_evidence", [])
+    if not has_verification and "verification" not in required_evidence:
+        raise AssertionError(
+            f"{label}: partial builder result must include verification evidence "
+            "or declare verification in recovery.required_evidence"
+        )
+
+
 def assert_unique_slice_ids(dispatches: list[dict], *, label: str) -> None:
     slice_ids = [d["slice_id"] for d in dispatches]
     if len(slice_ids) != len(set(slice_ids)):
@@ -579,8 +592,12 @@ def assert_result_matches_dispatch(
             f"{label}: ownership_paths must match the originating dispatch"
         )
 
-    if payload.get("status") in {"blocked", "partial"}:
+    status = payload.get("status")
+    if status == "blocked":
         return
+
+    if status == "partial":
+        assert_builder_partial_checkpoint_contract(payload, label=label)
 
     for touched_path in payload["changeset"]["touched_paths"]:
         if not is_within(touched_path, dispatch["ownership_paths"]):
@@ -793,6 +810,56 @@ def assert_negative_regressions(
         "result.builder.json.partial_missing_recovery",
     )
 
+    partial_builder_missing_changeset = clone_payload(
+        load_json(E2E_DIR / "result.builder.json")
+    )
+    partial_builder_missing_changeset["status"] = "partial"
+    partial_builder_missing_changeset["summary"] = "Partial without landed-change tracking."
+    partial_builder_missing_changeset.pop("changeset", None)
+    partial_builder_missing_changeset.pop("verification", None)
+    partial_builder_missing_changeset["recovery"] = {
+        "required_evidence": ["verification"],
+        "checkpoint": {
+            "state": "partial",
+            "last_action": "Stopped before writing a durable changeset.",
+            "resume_from": "Rebuild the missing changeset before salvage continues.",
+            "next_steps": [
+                "Capture the landed files.",
+                "Resume the owned builder slice.",
+                "Run verification before closeout.",
+            ],
+        },
+    }
+    assert_schema_rejects(
+        BUILDER_RESULT_SCHEMA_ID,
+        partial_builder_missing_changeset,
+        "result.builder.json.partial_missing_changeset",
+    )
+
+    partial_builder_missing_resume_from = clone_payload(
+        load_json(E2E_DIR / "result.builder.json")
+    )
+    partial_builder_missing_resume_from["status"] = "partial"
+    partial_builder_missing_resume_from["summary"] = "Partial without a resume anchor."
+    partial_builder_missing_resume_from.pop("verification", None)
+    partial_builder_missing_resume_from["recovery"] = {
+        "required_evidence": ["verification"],
+        "checkpoint": {
+            "state": "partial",
+            "last_action": "Applied the safe subset.",
+            "next_steps": [
+                "Reopen the owned slice.",
+                "Finish the remaining edit.",
+                "Run verification before closeout.",
+            ],
+        },
+    }
+    assert_schema_rejects(
+        BUILDER_RESULT_SCHEMA_ID,
+        partial_builder_missing_resume_from,
+        "result.builder.json.partial_missing_resume_from",
+    )
+
     tiny_over_cap_single = {
         "scenario_id": "route-single-over-cap",
         "route": "single",
@@ -863,7 +930,6 @@ def assert_negative_regressions(
     partial_builder = clone_payload(load_json(E2E_DIR / "result.builder.json"))
     partial_builder["status"] = "partial"
     partial_builder["summary"] = "Applied part of the change set and returned a checkpoint."
-    partial_builder.pop("changeset", None)
     partial_builder.pop("evidence", None)
     partial_builder.pop("verification", None)
     partial_builder["recovery"] = {
@@ -888,6 +954,61 @@ def assert_negative_regressions(
         partial_builder,
         dispatches_by_key,
         label="result.builder.json.partial_recovery_only",
+    )
+
+    partial_builder_with_verification = clone_payload(load_json(E2E_DIR / "result.builder.json"))
+    partial_builder_with_verification["status"] = "partial"
+    partial_builder_with_verification["summary"] = (
+        "Applied part of the change set, ran the available verification, and returned a checkpoint."
+    )
+    partial_builder_with_verification.pop("evidence", None)
+    partial_builder_with_verification["verification"] = [
+        {
+            "cmd": "python3 dev/multi-agent/e2e/validate_payloads.py",
+            "cwd": "<repo_root>",
+            "exit_code": 0,
+            "stdout_excerpt": "OK: partial checkpoint remains schema-valid so far"
+        }
+    ]
+    partial_builder_with_verification["recovery"] = {
+        "checkpoint": {
+            "state": "partial",
+            "last_action": "Applied the schema edits and ran the available local validator pass.",
+            "resume_from": "Continue inside the same owned package from the saved schema edits.",
+            "next_steps": [
+                "Finish the remaining validator cleanup.",
+                "Run the full smoke bundle.",
+                "Return the final done result once closeout evidence is complete.",
+            ],
+        },
+    }
+    validate_one(
+        BUILDER_RESULT_SCHEMA_ID,
+        partial_builder_with_verification,
+        "result.builder.json.partial_with_verification",
+    )
+    assert_result_matches_dispatch(
+        partial_builder_with_verification,
+        dispatches_by_key,
+        label="result.builder.json.partial_with_verification",
+    )
+
+    partial_builder_missing_verification_state = clone_payload(
+        partial_builder_with_verification
+    )
+    partial_builder_missing_verification_state.pop("verification", None)
+    assert_rejected(
+        lambda: assert_builder_partial_checkpoint_contract(
+            partial_builder_missing_verification_state,
+            label="result.builder.json.partial_missing_verification_state",
+        ),
+        label="result.builder.json.partial_missing_verification_state.policy",
+        expected_substring="must include verification evidence or declare verification",
+    )
+    assert_schema_rejects(
+        BUILDER_RESULT_SCHEMA_ID,
+        partial_builder_missing_verification_state,
+        "result.builder.json.partial_missing_verification_state.schema",
     )
 
     inspector_missing_notes = clone_payload(

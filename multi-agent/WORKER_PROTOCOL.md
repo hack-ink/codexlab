@@ -108,8 +108,11 @@ Runner example (including a handoff request):
 ## Builder checklist
 
 - Stay strictly within `ownership_paths`.
-- Treat each Builder ticket as one named work package; keep `work_package_id` stable across related reports and retries.
+- Treat each Builder ticket as one named work package.
 - Prefer completing micro follow-ups inside the current package when ownership and constraints are unchanged.
+- If owned edits have landed but the ticket is unlikely to finish cleanly before the timebox expires, prefer a schema-valid `partial` checkpoint over silence or a rushed `done` claim.
+- Make partial checkpoints durable enough for Broker or human takeover: say what landed, what verification already ran, what must not be replayed, and the narrowest remaining work.
+- Keep the same parent work and same `work_package_id` only while the owned `ownership_paths` stay unchanged; ask the Broker for a new work package when ownership changes.
 - If you discover cross-cutting work:
   - stop expanding scope
   - propose schema-valid handoff requests with disjoint ownership
@@ -121,6 +124,8 @@ Runner example (including a handoff request):
   - `verification`
 - `work_package_id` stays mandatory on every Builder `/1` result; using the legacy `role` alias does not waive it.
 - For `status="blocked"` or `status="partial"`, return the structured `recovery` object with checkpoint data instead of only a prose explanation.
+- When returning `status="partial"` after landed edits, include `changeset`, set `recovery.checkpoint.resume_from` and `next_steps`, and either attach the verification already run or list `verification` in `recovery.required_evidence`.
+- Broker/runtime salvage follow-ups may reuse the same `work_package_id` only when the owned `ownership_paths` stay unchanged.
 
 ## Inspector checklist
 

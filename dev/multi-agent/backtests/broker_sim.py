@@ -152,6 +152,13 @@ class BrokerSimulator:
             key: {int(v) for v in values}
             for key, values in scenario.get("fail_attempts", {}).items()
         }
+        self.terminal_status_by_slice: dict[str, str] = {}
+        for slice_id, status in scenario.get("terminal_status_by_slice", {}).items():
+            if status not in {"done", "partial"}:
+                raise AssertionError(
+                    f"Unsupported terminal status for {slice_id!r}: {status!r}"
+                )
+            self.terminal_status_by_slice[slice_id] = status
 
         files = scenario["files"]
         self.initial_dispatches = load_json(self.scenario_dir / files["initial_dispatches"])
@@ -164,6 +171,7 @@ class BrokerSimulator:
         self.fingerprint_to_slice: dict[str, str] = {}
         self.aliases: dict[str, str] = {}
         self.inflight: list[InflightItem] = []
+        self.builder_work_packages: dict[tuple[str, str, str], dict[str, Any]] = {}
 
         self.time_s = 0
         self.next_added_order = 0
@@ -236,12 +244,22 @@ class BrokerSimulator:
                 for slice_id, modes in self.dispatch_modes_by_slice.items()
             },
             "completed_slice_ids": list(self.completed_order),
+            "completed_status_by_slice": {
+                slice_id: state.status
+                for slice_id, state in self.states.items()
+                if self._is_terminal_state(state.status)
+            },
             "event_count": len(self.events),
             "events": list(self.events),
         }
 
     def _all_done(self) -> bool:
-        return bool(self.states) and all(s.status == "done" for s in self.states.values())
+        return bool(self.states) and all(
+            self._is_terminal_state(state.status) for state in self.states.values()
+        )
+
+    def _is_terminal_state(self, status: str) -> bool:
+        return status in {"done", "partial"}
 
     def _step_wait_any(self) -> bool:
         if self.inflight:
@@ -360,7 +378,7 @@ class BrokerSimulator:
         for dep in dependencies:
             dep_id = self.aliases.get(dep, dep)
             state = self.states.get(dep_id)
-            if state is None or state.status != "done":
+            if state is None or not self._is_terminal_state(state.status):
                 return False
         return True
 
@@ -461,14 +479,15 @@ class BrokerSimulator:
             )
             return True
 
-        state.status = "done"
+        terminal_status = self.terminal_status_by_slice.get(slice_id, "done")
+        state.status = terminal_status
         state.available_at = self.time_s
         self.completed_order.append(slice_id)
         self._release_worker(agent_type, item.worker_id)
         self.events.append(
             {
                 "t": self.time_s,
-                "event": "done",
+                "event": terminal_status,
                 "slice_id": slice_id,
                 "attempt": item.attempt,
                 "worker_id": item.worker_id,
@@ -522,6 +541,7 @@ class BrokerSimulator:
 
     def _enqueue_one(self, payload: dict[str, Any], source: str) -> None:
         dispatch = self._normalize_dispatch(payload)
+        self._assert_builder_work_package_continuity(dispatch, source=source)
         raw_slice_id = dispatch["slice_id"]
         slice_id = self.aliases.get(raw_slice_id, raw_slice_id)
         dispatch["slice_id"] = slice_id
@@ -606,6 +626,35 @@ class BrokerSimulator:
                 raise AssertionError(
                     f"{source}: cannot merge divergent field {key!r} for {current['slice_id']}"
                 )
+
+    def _assert_builder_work_package_continuity(
+        self,
+        dispatch: dict[str, Any],
+        *,
+        source: str,
+    ) -> None:
+        if dispatch["agent_type"] != "builder":
+            return
+
+        work_package_id = dispatch.get("work_package_id")
+        if work_package_id is None:
+            return
+
+        package_key = (dispatch["ssot_id"], dispatch["task_id"], work_package_id)
+        current = self.builder_work_packages.get(package_key)
+        if current is None:
+            self.builder_work_packages[package_key] = {
+                "slice_id": dispatch["slice_id"],
+                "ownership_paths": list(dispatch["ownership_paths"]),
+            }
+            return
+
+        if current["ownership_paths"] != dispatch["ownership_paths"]:
+            raise AssertionError(
+                f"{source}: work_package_id {work_package_id!r} cannot continue with "
+                "changed ownership_paths "
+                f"({current['slice_id']} -> {dispatch['slice_id']})"
+            )
 
     def _merge_additive_fields(
         self,

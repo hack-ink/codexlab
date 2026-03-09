@@ -11,8 +11,14 @@ Use this when a run becomes unreliable (stalls, schema failures, ownership deadl
 ## 2) Stuck/slow worker
 
 1. Interrupt and request a checkpoint: state, last action, next 3 steps, blocked reason.
-2. If still stuck/non-responsive, close and re-dispatch smaller scope.
-3. If the same stall repeats, require an Inspector pre-mortem before continuing.
+2. If the worker is a Builder and owned diffs may already have landed, switch to salvage mode before re-dispatch:
+   - close the original stuck worker before dispatching any follow-up Builder so salvage continues from a single live owner
+   - independently inspect the owned diff and run fresh targeted verification before adopting any landed changes
+   - record scheduler-local provenance for the adoption decision, including the interrupted `slice_id`, current `work_package_id`, verification evidence, and whether the package is complete or still partial
+   - keep the same parent and same `work_package_id` only while the redispatch stays under the same `ownership_paths`; mint a new work package when ownership changes
+   - escalate to human takeover or `blocked` if the landed state cannot be verified safely
+3. If no owned diffs landed, close and re-dispatch smaller scope.
+4. If the same stall repeats, require an Inspector pre-mortem before continuing.
 
 ## 3) Ownership lock deadlock
 
