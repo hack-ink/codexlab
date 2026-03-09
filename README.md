@@ -12,6 +12,8 @@ This repository hosts reusable agent skills for Codex workflows.
 - `rust-style` - mandatory Rust conventions for scope, toolchain/workflow, safety, formatting, error handling, logging, and ownership (`rust-style/SKILL.md`).
 - `git-worktrees` - worktree setup and lifecycle guidance for isolated branches, safe directory selection, repo-native bootstrap, and Rust-aware build-cache tradeoffs (`git-worktrees/SKILL.md`).
 - `skill-routing` - generic skill-discovery and loading policy that checks for relevant skills before acting, uses the current runtime's loading mechanism, and keeps skill usage minimal and explicit (`skill-routing/SKILL.md`).
+- `plan-writing` - plan-writing workflow for multi-step or risky tasks, including Plan mode handoff, evidence-grounded task decomposition, and durable plan docs using the `docs/plans/YYYY-MM-DD_<feature-name>.md` convention (`plan-writing/SKILL.md`).
+- `plan-execution` - execution workflow for saved implementation plans, with critical plan review, checkpoint-based batches, repo-native verification, and staged progress reporting (`plan-execution/SKILL.md`).
 - `pre-commit` - repository commit/push gate with repo-specific Makefile.toml task checks and workflow validation (`pre-commit/SKILL.md`).
 - `codebase-review` - methodology and tooling for full codebase review with risk triage, slicing, findings, decision logs, and SHA-anchored coverage gates (`codebase-review/SKILL.md`).
 

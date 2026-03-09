@@ -261,4 +261,9 @@ Use scenario-hash format only (no dates, no secrets).
 
 Generator:
 
-- `python3 multi-agent/tools/make_ssot_id.py <scenario>`
+```bash
+# Set MULTI_AGENT_HOME to the installed `multi-agent` skill directory
+# (the folder containing this doc and `tools/`), derived from the runtime's skills entry.
+MULTI_AGENT_HOME="<skill-root>"
+python3 "$MULTI_AGENT_HOME"/tools/make_ssot_id.py <scenario>
+```

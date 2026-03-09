@@ -153,6 +153,8 @@ This is review coverage, not test coverage.
 CODEBASE_REVIEW_HOME="<skill-root>"
 ```
 
+Adapt the scope patterns below to the language stack under review.
+
 - Initialize a reusable campaign layout in the target repo:
 
 ```bash
@@ -165,7 +167,7 @@ cp "$CODEBASE_REVIEW_HOME"/decision-log-template.md review/decision-log.md
 cp "$CODEBASE_REVIEW_HOME"/forward-gates-template.md review/forward-gates.md
 ``` 
 
-- Create initial Rust scope and run one-time scope snapshot:
+- Example: create an initial Rust-oriented scope snapshot:
 
 ```bash
 git ls-files \
@@ -197,7 +199,7 @@ python3 "$CODEBASE_REVIEW_HOME"/check-review-coverage.py \
   --min-coverage 100
 ```
 
-- Check a Rust slice without frozen scope:
+- Example: check a Rust-oriented slice without frozen scope:
 
 ```bash
 python3 "$CODEBASE_REVIEW_HOME"/check-review-coverage.py \

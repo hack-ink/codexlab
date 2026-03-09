@@ -104,8 +104,11 @@ Bootstrap inspector template:
 - Use Council freely for `multi` runs that still need scout-first boundary or risk discovery before Builder packages are ready.
 - All dispatches must validate against `schemas/task-dispatch.schema.json`.
 - Keep Builder write ownership disjoint before dispatching parallel write tickets.
-- For quick bootstrap skeleton generation in this workspace, use:
+- For quick bootstrap skeleton generation from the installed skill, use:
 
 ```bash
-python3 multi-agent/tools/make_council_bootstrap.py <scenario> --task-id <task-id> --format array
+# Set MULTI_AGENT_HOME to the installed `multi-agent` skill directory
+# (the folder containing this doc and `tools/`), derived from the runtime's skills entry.
+MULTI_AGENT_HOME="<skill-root>"
+python3 "$MULTI_AGENT_HOME"/tools/make_council_bootstrap.py <scenario> --task-id <task-id> --format array
 ```
