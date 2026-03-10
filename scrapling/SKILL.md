@@ -1,13 +1,13 @@
 ---
 name: scrapling
-description: Adaptive web scraping with Scrapling for pages that break simple fetch tools. Use when Codex needs to extract content from static pages, JavaScript-rendered pages, or bot-protected pages via Scrapling CLI, Python, or MCP, especially after `curl`, built-in web fetch, or web search tools return incomplete, blocked, or low-fidelity results.
+description: Browser-backed fallback scraping with Scrapling for pages that lightweight system-level fetches cannot retrieve. Use when system `curl`, built-in web fetch, or web search is blocked, interstitialed, or stripped by JavaScript or anti-bot protection, then escalate with Scrapling dynamic or stealth fetchers.
 ---
 
 # Scrapling
 
 ## Overview
 
-Use Scrapling as the escalation path when `curl`, built-in web fetch, or search tools cannot return the page fidelity you need. Start with fast HTTP scraping, escalate to a real browser for JavaScript pages, and reserve stealth mode for bot-protected targets the user is authorized to access.
+Use Scrapling as the escalation path only after the lightest system-level retrieval path has already failed. Start with system `curl`, built-in web fetch, or direct docs access first. If those paths are blocked, interstitialed, or stripped by JavaScript, use Scrapling's browser-backed fetchers. Reserve stealth mode for bot-protected targets the user is authorized to access.
 
 All Scrapling installs for this skill must live in a private `venv` under the installed skill root. Do not install Scrapling into the source repo, the repo-wide shared `.venv`, or a global Python environment.
 
@@ -37,42 +37,45 @@ All Scrapling installs for this skill must live in a private `venv` under the in
 Use these extra sets:
 
 - Parser only: `scrapling`
-- CLI and interactive shell: `scrapling[shell]`
-- Dynamic and stealth fetchers: `scrapling[fetchers]`
-- MCP server support: `scrapling[ai]`
+- Browser-backed fallback fetching: `scrapling[fetchers]`
+- Interactive shell on top of fetchers: `scrapling[shell]`
+- MCP server support on top of fetchers: `scrapling[ai]`
 - Everything: `scrapling[all]`
+
+For the default fallback workflow in this skill, prefer `scrapling[fetchers]`. Add `shell` only when you need interactive probing, and add `ai` only when you actually need the MCP server. Avoid `scrapling[all]` unless you explicitly need every mode, because it pulls in extra tooling that the normal fallback path does not use.
 
 ## Mode Ladder
 
-1. Start with static HTTP via `scrapling extract get` or `Fetcher.get`.
-Use this for normal HTML pages, JSON endpoints, and cases where `curl` only needs better impersonation or selector-targeted extraction.
+1. Start with system-level `curl` or an equivalent lightweight fetch outside Scrapling.
+If that path succeeds, keep using it. Do not invoke Scrapling just to replace a working lightweight fetch.
 
 2. Escalate to dynamic browser mode via `scrapling extract fetch` or `DynamicFetcher.fetch`.
-Use this when the initial HTML is missing the target content, the page is a JavaScript shell, or you need browser rendering and wait strategies.
+Use this when `curl` or built-in fetches cannot retrieve the target content because the page is a JavaScript shell, an interstitial blocks the response, or the returned HTML is not the real page.
 
 3. Escalate to stealth mode via `scrapling extract stealthy-fetch` or `StealthyFetcher.fetch`.
 Use this only for explicit anti-bot or interstitial cases such as Cloudflare-style blocking, and only when the user is authorized to access the target.
 
 4. Use sessions or async variants when state or scale matters.
-Reach for `FetcherSession`, `DynamicSession`, `StealthySession`, or async equivalents when you need cookie reuse, pooled browser tabs, or multiple URLs.
+Reach for `DynamicSession`, `StealthySession`, or async equivalents when you need cookie reuse, pooled browser tabs, or multiple URLs.
 
 5. Use MCP when the task needs reusable scraping tools instead of one-off commands.
-This is the right path for agent loops that need repeated `get`, `fetch`, or stealth fetch operations without shelling out each time.
+This is the right path for agent loops that need repeated browser-backed or stealth fetch operations without shelling out each time.
 
 ## Extraction Rules
 
 - Prefer selector-targeted extraction over full-page dumps.
 - Prefer markdown or text for LLM consumption unless the task explicitly needs raw HTML.
 - Use `page.css(...)`, `page.xpath(...)`, and `page.json()` instead of ad hoc string slicing.
-- Keep browser mode as a second step, not the default.
+- Keep system `curl` or an equivalent lightweight fetch as the default first step.
+- Use Scrapling only when those lightweight paths are blocked or cannot expose the real content.
 - Treat stealth mode as the expensive last resort.
 
 ## Failure Recovery
 
-- If `curl` or a built-in fetch returns partial HTML, retry in static Scrapling mode with impersonation and a selector.
-- If you only see placeholders, loading shells, or empty containers, switch to dynamic mode.
+- If system `curl` or a built-in fetch succeeds, stay on that lightweight path and extract locally.
+- If you only see placeholders, loading shells, interstitials, or anti-bot refusals, switch to dynamic mode.
 - If the browser path still gets blocked by anti-bot checks, escalate to stealth mode only when the target and access are legitimate.
-- If you need to inspect or translate an existing `curl` flow, use `scrapling shell` for quick manual probing.
+- If you need to inspect or tune selectors after switching to Scrapling, use `scrapling shell` for quick manual probing.
 
 ## Safety Constraints
 
