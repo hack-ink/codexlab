@@ -42,7 +42,7 @@ Get decision-grade research and architecture recommendations from ChatGPT Pro, t
    - If `agent-browser` itself is unhealthy before page interaction starts (for example trivial local commands like `--help`, `session list`, `get url`, or a minimal `open` hang/fail), treat that as a client/daemon transport failure, not as a ChatGPT page problem.
    - In that case, fall back to direct Playwright control using the same `research-pro` Chrome profile directory and keep that browser context alive for the rest of the run. Reuse any existing Project or conversation you already created; do not restart from scratch unless the session is unrecoverable.
    - Active-generation controls are authoritative. Do not treat partial output, a visible `Copy` button, or the absence of progress text as completion while `Stop streaming`, `Continue generating`, `Update`, or equivalent active-generation controls remain.
-   - Exact reattach rule: if the canonical `conversation_url` still resolves to a live `/c/` thread and `snapshot -i -C` shows `Model selector, current model is 5.4 Pro`, `Extended Pro`, and a live `Stop streaming` control, the consultation is definitively `in_progress`, not complete, even if a `Copy` button and partial assistant text are visible.
+   - Exact reattach rule: if the canonical `conversation_url` still resolves to a live `/c/` thread and `snapshot -i -C` shows that a Pro model is selected, `Extended` thinking is active, and a live `Stop streaming` control is present, the consultation is definitively `in_progress`, not complete, even if a `Copy` button and partial assistant text are visible.
 2. Treat secrets and private data as sensitive: do not paste tokens, credentials, internal-only identifiers, customer data, or private URLs.
 3. No leaks in web research: do not include sensitive details in any “search log” or “sources” requests to Pro.
 
@@ -66,7 +66,7 @@ Get decision-grade research and architecture recommendations from ChatGPT Pro, t
 
 ### Pro model + latency (must follow)
 
-10. Ensure model is Pro (do not pin a specific Pro version string), then set Pro thinking to `Extended` by default.
+10. Ensure the latest available Pro model is selected (do not pin a specific Pro version string), then set Pro thinking to `Extended` by default.
    - Switch to `Standard` only if the user explicitly asks for `Standard`/`default`.
 11. Poll every 180 seconds while waiting for completion because Pro Standard can still take minutes to hours.
    - There is no fixed polling budget or max cycle count. Keep polling the same conversation until the completion gate passes, the run is explicitly aborted, or a real `needs-user-action` blocker is reached.
@@ -144,7 +144,7 @@ Ask Pro to follow this workflow and to be explicit about evidence:
    - There is no fixed polling budget or max cycle count. The same turn keeps polling until the completion gate passes, the run is explicitly aborted, or a real `needs-user-action` blocker is reached.
    - Keep the same browser context open while polling. Do not revert to "probe, close, reopen" once prompt submission is in scope.
    - Completion gate: do not treat partial visible assistant text, a visible `Copy` button, or missing progress text as completion while `Stop streaming`, `Continue generating`, `Update`, or equivalent active-generation controls are still present.
-   - Reattach gate: if `agent-browser --session research-pro --session-name research-pro get url` still returns the same `/c/` thread and `snapshot -i -C` shows `Model selector, current model is 5.4 Pro`, `Extended Pro`, and `Stop streaming`, the consultation is still active. Keep polling in the same turn. Use `status=in_progress` only when an explicit interruption, checkpoint, or continuity handoff is required.
+   - Reattach gate: if `agent-browser --session research-pro --session-name research-pro get url` still returns the same `/c/` thread and `snapshot -i -C` shows that a Pro model is selected, `Extended` thinking is active, and `Stop streaming` is present, the consultation is still active. Keep polling in the same turn. Use `status=in_progress` only when an explicit interruption, checkpoint, or continuity handoff is required.
    - If polling hits a transient `agent-browser` failure (busy daemon, snapshot failure, temporary transport error, or session hiccup), recover the existing session first:
      - Run `agent-browser --session research-pro --session-name research-pro get url`.
      - If it still returns a `/c/` conversation, reopen or resume that URL in the same session and continue polling.
