@@ -7,7 +7,7 @@ description: Use when reviewing a codebase for compatibility shims, dead code, o
 
 ## Objective
 
-Identify and report likely-removable code and artifacts (compatibility compromises, dead code, and outdated content) with enough evidence for a human to decide what to delete safely.
+Identify and report likely-removable code and artifacts (compatibility compromises, dead code, and outdated content) with enough evidence for a human to make a cleanup decision safely.
 
 This skill is **report-only** by default: it does not perform cleanup unless the user explicitly asks.
 
@@ -30,7 +30,10 @@ Ask for (or infer safely, without blocking when possible):
 
 - Do **not** delete or refactor code as part of this skill unless the user explicitly approves.
 - Do **not** claim something is safe to remove without evidence; use confidence levels.
+- Do **not** recommend removal from a single weak signal (for example, one text search with no hits). Prefer at least two independent evidence signals before marking an item as removable; otherwise mark it as **not_cleanup_ready** or **blocked**.
+- Do **not** treat tooling-owned generated artifacts as ordinary dead-code candidates. Trace them back to their source of truth and report the canonical regeneration or removal path instead of suggesting manual deletion.
 - If supported-version policy is unknown and affects a finding (for example, a Python/Rust/Node minimum version), mark the item as **blocked** and ask the user.
+- Prefer build graph, CI, and runtime-liveness evidence over text-search-only claims when those signals are available.
 - Prefer reversible, low-risk tooling: static analysis and text search. Avoid actions that mutate state.
 
 ## Why this helps
@@ -43,6 +46,7 @@ Ask for (or infer safely, without blocking when possible):
 1. **Baseline context**
    - Identify languages/frameworks and build tooling from the repo (`package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`, etc.).
    - If available, identify what CI runs (GitHub Actions, Buildkite, Makefiles, task runners).
+   - Define the cleanup question up front: is each item merely a **candidate**, **not_cleanup_ready**, or strong enough to recommend for a later approved deletion batch?
 
 2. **Scan for compatibility compromises**
    - Search for keywords suggesting historical shims:
@@ -69,10 +73,11 @@ Ask for (or infer safely, without blocking when possible):
    - **Unreachable paths**: code behind hardcoded false conditions, obsolete feature flags, or environment variables no longer set anywhere.
    - **Stale toggles**: feature flags that are always-on/off in the current configuration set.
 
-   Evidence to collect (prefer at least two signals):
+   Evidence to collect (prefer at least two independent signals):
    - Text references: `rg`/`git grep` showing "defined here, never referenced elsewhere".
    - Static analysis warnings (if the repo already uses such tools).
    - Build graph references (import graphs, Cargo workspace members, entrypoints).
+   - CI or runtime-liveness evidence (test coverage, startup wiring, config references, logs/telemetry, registration points) when available.
 
    Quick search examples (adapt as needed):
    - Rust suppressed unused: `rg -n --hidden --glob '!.git' '#\\[allow\\((dead_code|unused|unused_imports|unused_variables)\\)\\]'`
@@ -84,6 +89,7 @@ Ask for (or infer safely, without blocking when possible):
    - Old docs: references to removed commands, flags, endpoints, or directories.
    - Old scripts: utilities not invoked by CI, Make/tasks, docs, or developers.
    - Stale configs: duplicated configs, deprecated settings, unused env vars.
+   - Tooling-owned generated artifacts: report the generator, source-of-truth inputs, and canonical regeneration/removal path instead of treating the generated file itself as ordinary dead code.
    - Time-based stale TODOs: items referencing dates/releases already passed (treat as "needs review", not automatically removable).
 
 5. **Write the report (and stop)**
@@ -105,6 +111,9 @@ Return a report with these sections (Markdown is fine):
   - Outdated/stale artifacts (docs/scripts/config).
 - **Evidence per item**:
   - File path(s), symbol names, relevant search terms used, and what you observed.
+  - An explicit evidence map (`claim -> evidence -> source/signal`).
+- **Cleanup readiness**:
+  - `candidate` / `not_cleanup_ready` / `blocked`, with a short explanation.
 - **Confidence and risk**:
   - `high` / `medium` / `low` confidence, plus "blast radius" notes (public API? runtime-critical? tests covering it?).
 - **Proposed cleanup plan (optional)**:
@@ -113,8 +122,8 @@ Return a report with these sections (Markdown is fine):
 
 ## Notes
 
-- "No references found" is not proof of dead code in dynamic/plugin systems; downgrade confidence when reflection, dynamic imports, or runtime registration is common.
-- Prefer to treat generated/vendor directories as out-of-scope unless the user asks.
+- "No references found" is not proof of dead code in dynamic/plugin systems; downgrade confidence when reflection, dynamic imports, runtime registration, or config-driven loading is common.
+- Prefer to treat generated/vendor directories as out-of-scope unless the user asks. If they are in scope, trace them to source-of-truth inputs and canonical tooling flows rather than treating them as ordinary files.
 - If the repository already has linters (Clippy/Ruff/ESLint/etc.), use them for evidence; do not add new tooling as part of this skill.
 
 ## Quick reference
@@ -128,7 +137,9 @@ Return a report with these sections (Markdown is fine):
 ## Common mistakes
 
 - Deleting “because no references”: dynamic imports/registries can hide usage; downgrade confidence and ask for verification entrypoints.
+- Treating a single grep result as sufficient evidence: cleanup recommendations should rest on at least two independent signals, or remain `not_cleanup_ready`.
 - Mixing detection with cleanup: this skill is report-first; deletion is a separate user-approved follow-up.
+- Treating generated/tooling-owned artifacts as ordinary dead files instead of reporting their generator and canonical regeneration/removal path.
 - Reporting without evidence: every candidate needs concrete pointers (paths/symbols + search output or tooling signal).
 
 ## References
