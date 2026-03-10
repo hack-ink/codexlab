@@ -17,7 +17,7 @@ All Scrapling installs for this skill must live in a private `venv` under the in
 - Desired output shape: markdown, text, HTML, or structured selector results
 - Optional CSS selector or XPath target
 - Signals that JavaScript rendering, cookies, or anti-bot handling may be required
-- Whether the task is one-off shell usage, reusable Python code, or MCP exposure for an agent loop
+- Whether the task is one-off CLI usage or reusable Python code
 
 ## Runtime Isolation
 
@@ -30,19 +30,11 @@ All Scrapling installs for this skill must live in a private `venv` under the in
 ## Install Gate
 
 1. Create the private runtime with `python3 -m venv "$SCRAPLING_HOME/.runtime/venv"`.
-2. Install the smallest Scrapling extra set that matches the task into that `venv`.
+2. Install `scrapling[fetchers]` into that `venv`.
 3. Run all Scrapling CLI commands from that `venv`, either by activation or by calling the binary under `$SCRAPLING_HOME/.runtime/venv/bin/`.
 4. If dynamic or stealth fetchers are in scope, run `scrapling install` inside that `venv` and keep its browser artifacts under `$SCRAPLING_HOME/.runtime/`.
 
-Use these extra sets:
-
-- Parser only: `scrapling`
-- Browser-backed fallback fetching: `scrapling[fetchers]`
-- Interactive shell on top of fetchers: `scrapling[shell]`
-- MCP server support on top of fetchers: `scrapling[ai]`
-- Everything: `scrapling[all]`
-
-For the default fallback workflow in this skill, prefer `scrapling[fetchers]`. Add `shell` only when you need interactive probing, and add `ai` only when you actually need the MCP server. Avoid `scrapling[all]` unless you explicitly need every mode, because it pulls in extra tooling that the normal fallback path does not use.
+This skill is intentionally scoped to `scrapling[fetchers]` only. Do not document or install `shell`, `ai`, or `all` extras for this workflow.
 
 ## Mode Ladder
 
@@ -58,9 +50,6 @@ Use this only for explicit anti-bot or interstitial cases such as Cloudflare-sty
 4. Use sessions or async variants when state or scale matters.
 Reach for `DynamicSession`, `StealthySession`, or async equivalents when you need cookie reuse, pooled browser tabs, or multiple URLs.
 
-5. Use MCP when the task needs reusable scraping tools instead of one-off commands.
-This is the right path for agent loops that need repeated browser-backed or stealth fetch operations without shelling out each time.
-
 ## Extraction Rules
 
 - Prefer selector-targeted extraction over full-page dumps.
@@ -75,7 +64,6 @@ This is the right path for agent loops that need repeated browser-backed or stea
 - If system `curl` or a built-in fetch succeeds, stay on that lightweight path and extract locally.
 - If you only see placeholders, loading shells, interstitials, or anti-bot refusals, switch to dynamic mode.
 - If the browser path still gets blocked by anti-bot checks, escalate to stealth mode only when the target and access are legitimate.
-- If you need to inspect or tune selectors after switching to Scrapling, use `scrapling shell` for quick manual probing.
 
 ## Safety Constraints
 
@@ -86,4 +74,4 @@ This is the right path for agent loops that need repeated browser-backed or stea
 ## References
 
 - Read [references/usage.md](references/usage.md) for the required `venv` bootstrap plus copy-paste CLI and Python examples.
-- Load the reference file only when you need concrete command patterns or MCP/session examples.
+- Load the reference file only when you need concrete command patterns or Python/session examples.

@@ -15,15 +15,7 @@ python3 -m venv "$SCRAPLING_VENV"
 
 All installers should use this private `venv` under the installed skill root. Do not install Scrapling into the source repo, the repo-wide shared `.venv`, or a global Python environment.
 
-Use the smallest extra set that matches the task:
-
-- `scrapling`
-- `scrapling[fetchers]`
-- `scrapling[shell]`
-- `scrapling[ai]`
-- `scrapling[all]`
-
-For the default "system `curl` first, Scrapling only when blocked" workflow, `scrapling[fetchers]` is enough. Add `scrapling[shell]` only if you need `scrapling shell`. Add `scrapling[ai]` only if you need `scrapling mcp`. Avoid `scrapling[all]` unless you knowingly want both optional layers.
+This skill uses `scrapling[fetchers]` only. Do not add `shell`, `ai`, or `all` extras for this workflow.
 
 When browser-backed fetchers are involved, install the matching extra set into the same `venv` and then run:
 
@@ -35,7 +27,6 @@ If you prefer not to activate the environment, define:
 
 ```bash
 export SCRAPLING_BIN="$SCRAPLING_VENV/bin/scrapling"
-export SCRAPLING_PY="$SCRAPLING_VENV/bin/python"
 ```
 
 ## Retrieval Policy
@@ -69,16 +60,6 @@ Use this only for legitimate, authorized targets that present anti-bot or inters
 ```
 
 Treat this as the last resort because it is heavier and higher-risk than normal browser fetches.
-
-## Interactive Shell
-
-Use the shell for quick experiments and selector tuning after you have already decided a browser-backed Scrapling path is necessary.
-
-```bash
-"$SCRAPLING_BIN" shell
-```
-
-The shell is useful when you want to try selectors interactively before committing to a script or agent workflow.
 
 ## Python Examples
 
@@ -114,16 +95,3 @@ links = page.css("#padded_content a").getall()
 
 - Use `DynamicSession` or `StealthySession` when repeated browser-backed fetches should share one browser context.
 - Use async variants when scraping multiple URLs concurrently instead of looping serially.
-
-## MCP
-
-When the task is better served by reusable agent tools than ad hoc shell commands, install the AI extra and start the MCP server:
-
-```bash
-"$SCRAPLING_PY" -m pip install "scrapling[ai]"
-"$SCRAPLING_BIN" mcp
-```
-
-The MCP server exposes tool-style operations for browser-backed and stealth fetch workflows.
-
-Prefer MCP for repeated agent-driven scraping loops. Prefer shell or Python for one-off extraction work after lightweight system fetches have already failed.
