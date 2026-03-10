@@ -15,7 +15,7 @@ Turn an ambiguous question into a decision-ready recommendation backed by explic
 - The task requires reading existing materials (docs/links/code/logs) before deciding.
 - The decision should be supported by multiple independent external sources plus any provided internal context.
 
-## Inputs (ask for these up front)
+## Preferred inputs (collect if available; do not block on complete intake)
 
 - The exact question and the decision to be made.
 - Existing materials: docs, links, code pointers, tickets, logs, dashboards, prior writeups.
@@ -27,7 +27,11 @@ Turn an ambiguous question into a decision-ready recommendation backed by explic
 
 1. **Read first**: do not recommend a solution before reading the provided materials (or explicitly stating none were provided).
 2. **Confirm the pain**: restate the user's pain points/problems in your own words and confirm.
-3. **Ask when unclear**: if anything blocks correctness, ask the user. Prefer 1-3 short questions per turn; prefer multiple-choice when possible.
+3. **Ask only blocking questions**:
+    - Ask the user only when missing information would materially affect correctness, evaluation criteria, search safety, or the recommendation.
+    - Prefer 1-3 short questions per turn; prefer multiple-choice when possible.
+    - If the provided materials are enough to begin, start with reading and synthesis instead of delaying for a complete intake checklist.
+    - Record non-blocking gaps as assumptions or open questions.
 4. **Evidence-backed decisions**:
     - Every recommendation must include an evidence map (claim -> evidence -> source).
     - Use websearch to find current best practices / broadly adopted solutions.
@@ -42,7 +46,7 @@ Turn an ambiguous question into a decision-ready recommendation backed by explic
 
 ## Procedure
 
-1. **Intake + scope**
+1. **Frame the decision**
     - Restate the question and the decision the user wants to make.
     - Define success criteria, constraints, and non-goals.
     - List assumptions; mark which ones need confirmation.
@@ -51,9 +55,10 @@ Turn an ambiguous question into a decision-ready recommendation backed by explic
     - Summarize facts, constraints, and what is already known.
     - Extract the user's pain points as a bullet list; ask "did I capture this correctly?"
 
-3. **Clarify unknowns**
+3. **Clarify blocking unknowns**
     - List open questions that materially affect the decision.
-    - Ask the highest-leverage question(s) first.
+    - Ask only the highest-leverage question(s) that materially affect correctness, evaluation criteria, search safety, or the recommendation.
+    - Record non-blocking gaps as assumptions or open questions and continue.
 
 4. **Set evaluation criteria**
     - Define the criteria you will use to judge solutions (examples: security, reliability, latency, DX, maturity/ecosystem, total cost, migration complexity).
@@ -80,10 +85,11 @@ Turn an ambiguous question into a decision-ready recommendation backed by explic
     - Provide an evidence map that ties each major claim to evidence and sources.
     - State your confidence level (high/medium/low) and why.
     - Include a reversal test: what new evidence would change your recommendation?
+    - If blocking facts remain unresolved after reasonable effort, explicitly say the result is not decision-ready instead of forcing a recommendation.
 
 ## Output template (deliver in-chat unless the user requests a file)
 
-- **TL;DR**: recommendation in 1-3 bullets.
+- **TL;DR**: recommendation in 1-3 bullets, or an explicit `not decision-ready` statement when blocking facts remain unresolved.
 - **Problem statement**: what decision is being made and why now.
 - **Pain points (confirmed)**: what hurts today.
 - **What we know** (from provided materials): facts only; cite internal artifacts by name/path if available.
@@ -92,7 +98,7 @@ Turn an ambiguous question into a decision-ready recommendation backed by explic
 - **Assumptions + limitations**: what you assumed, what you could not verify, and why.
 - **Options considered**: 2-4 options, with a comparison table.
 - **Industry best practices**: what's broadly adopted and why (with sources).
-- **Recommendation**: what to do, why, and when not to.
+- **Recommendation**: what to do, why, and when not to; or explicitly state `not decision-ready` and why a recommendation would be premature.
 - **Evidence map**: claim -> evidence -> source.
 - **Risks + mitigations**: including rollout/migration plan at a high level if relevant.
 - **Next steps**: concrete actions and owners.
@@ -127,12 +133,14 @@ Different domains have different norms. Use this as a default ordering, and expl
 ## Quick reference
 
 - Minimum bar (default): 3 independent external sources + an evidence map (claim -> evidence -> source).
+- Default flow: read first, ask only blocking questions, then research externally.
 - Always include: options + tradeoffs + recommendation + confidence + “what would change my mind”.
 - Keep a search log: queries + date.
 
 ## Common mistakes
 
 - Recommending before reading provided materials or before confirming the actual pain points.
+- Turning the intake checklist into a blocker when the available materials already support a first-pass framing.
 - Treating “two blog posts that cite each other” as independent evidence.
 - Leaking internal identifiers in web queries (always generalize).
 
