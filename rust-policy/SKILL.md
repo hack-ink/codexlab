@@ -1,13 +1,13 @@
 ---
-name: rust-style
-description: Use when implementing or reviewing Rust code and you need hack-ink mandatory Rust conventions.
+name: rust-policy
+description: Use when implementing or reviewing Rust code and you need the hack-ink Rust policy, including formatter authority and repo conventions.
 ---
 
-# Rust Style (hack-ink)
+# Rust Policy (hack-ink)
 
-## Overview
+## Policy
 
-Mandatory conventions for Rust code and Rust development workflows in this repository.
+This skill is the Rust policy document for hack-ink repositories. Use it to resolve Rust implementation and review choices. If the crate you are touching has a tighter checked-in rule, follow the tighter local rule.
 
 ## Scope
 
@@ -19,31 +19,25 @@ Mandatory conventions for Rust code and Rust development workflows in this repos
 - You are about to implement, refactor, or review Rust code in this repo.
 - You are about to change error handling, logging, time/TLS deps, or module layout.
 
-## Tooling and workflow (required)
+## Tooling boundaries
 
 - The Rust toolchain is pinned. Do not modify `rust-toolchain.toml`, `.cargo/config.toml`, or `.rustfmt.toml`.
 - Do not install, update, or override toolchains.
 - Do not invoke system package managers.
 
-## Runtime safety
-
-- Do not use `unwrap()` in non-test code.
-- `expect()` requires a clear, user-actionable message.
-
-## Time and TLS
-
-- Use the `time` crate for all date and time types. Do not add `chrono`.
-- Use rustls for TLS. Use native-tls only when rustls is not supported.
-
 ## Formatting and layout
 
-- `rustfmt` output is the final authority for formatting.
-- Use tabs (`\t`) for indentation.
+- `rustfmt` output is the final authority for formatting. If the repo checks in `rustfmt` config, obey that config instead of restating formatting preferences here.
+- Do not preserve manual alignment, tabs-vs-spaces opinions, or bespoke wrapping when `rustfmt` disagrees.
 - Use a flat module structure. Do not create or keep `mod.rs`.
 - If `mod.rs` exists, flatten it into `a.rs` and `a/xxx.rs` style files.
 
-## Error handling
+## Language policy
 
+- Do not use `unwrap()` in non-test code.
+- `expect()` requires a clear, user-actionable message.
+- Use the `time` crate for all date and time types. Do not add `chrono`.
+- Use rustls for TLS. Use native-tls only when rustls is not supported.
 - Use `color_eyre::eyre::Result` for fallible APIs. Do not introduce `anyhow`.
 - Use `#[error(transparent)]` only for thin wrappers where this crate adds no context and the upstream message is already sufficient for developers.
 - Use `ok_or_else` to convert `Option` to `Result` with context.
@@ -64,7 +58,7 @@ Mandatory conventions for Rust code and Rust development workflows in this repos
 
 ## Quick reference
 
-- Formatting: `rustfmt` is final; tabs indentation.
+- Formatting: `rustfmt` is final.
 - Error type: `color_eyre::eyre::Result` (do not add `anyhow`).
 - Time: `time` crate (do not add `chrono`).
 - TLS: rustls (native-tls only if rustls is unsupported).
@@ -79,7 +73,7 @@ Mandatory conventions for Rust code and Rust development workflows in this repos
 
 Return evidence for:
 
-- The affected Rust scope and confirmation that the mandatory conventions were applied.
-- Time/TLS dependency choices and formatting ownership decisions made.
-- Error handling and logging choices aligned with Rust-specific requirements.
+- The affected Rust scope and which policy points mattered.
+- Formatting ownership decisions, especially where `rustfmt` overrode hand formatting.
+- Time/TLS, error handling, and logging choices aligned with this policy.
 - Borrowing/ownership choices where they affect API boundaries and mutability.

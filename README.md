@@ -6,11 +6,11 @@ This repository hosts reusable agent skills for Codex workflows.
 
 - `multi-agent` - brokered two-state execution for one task or one PR-sized change stream, with schema-validated worker contracts and ownership locks (`multi-agent/SKILL.md`).
 - `dep-roll` - controlled dependency-upgrade workflow for pnpm, Poetry, Cargo, verification, and Dependabot alignment (`dep-roll/SKILL.md`).
-- `python-style` - mandatory Python conventions for shared workspace virtualenv setup and Poetry workflow (`python-style/SKILL.md`).
+- `python-policy` - Python policy for runtime boundaries and project-configured quality gates, deferring to checked-in bootstrap and allowing documented isolated runtimes when required (`python-policy/SKILL.md`).
 - `research` - research/investigation workflow that reads existing materials, clarifies unknowns with the user, and makes evidence-backed recommendations with websearch (`research/SKILL.md`).
 - `research-pro` - consult ChatGPT Pro via chatgpt.com Projects for architecture/research decisions, with Pro thinking defaulting to Extended (use Standard/default only when requested), project-only memory set only when creating a new Project, and polling-aware handoff (`research-pro/SKILL.md`).
 - `scrapling` - fallback web-scraping workflow for Scrapling when `curl`, built-in web fetch, or web search tools return incomplete, JS-shell, or bot-blocked content, with static/dynamic/stealth mode selection and CLI/Python/MCP examples (`scrapling/SKILL.md`).
-- `rust-style` - mandatory Rust conventions for scope, toolchain/workflow, safety, formatting, error handling, logging, and ownership (`rust-style/SKILL.md`).
+- `rust-policy` - Rust policy for scope, toolchain/workflow, safety, formatting, error handling, logging, and ownership, with `rustfmt` as the final formatting authority (`rust-policy/SKILL.md`).
 - `git-worktrees` - worktree setup and lifecycle guidance for isolated branches, independent parallel lanes, safe directory selection, repo-native bootstrap, and Rust-aware build-cache tradeoffs (`git-worktrees/SKILL.md`).
 - `parallel-conflict-resolution` - conflict triage and reconciliation workflow for merge/rebase/cherry-pick collisions across worktrees or independent branches (`parallel-conflict-resolution/SKILL.md`).
 - `skill-routing` - generic skill-discovery and loading policy that checks for relevant skills before acting, uses the current runtime's loading mechanism, and keeps skill usage minimal and explicit (`skill-routing/SKILL.md`).

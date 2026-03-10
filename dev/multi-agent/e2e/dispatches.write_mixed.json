@@ -111,11 +111,11 @@
     "work_package_id": "pkg-write-builder-05",
     "timebox_minutes": 12,
     "ownership_paths": [
-      "rust-style/"
+      "rust-policy/"
     ],
     "dependencies": [],
     "task_contract": {
-      "goal": "Update rust-style docs (example only).",
+      "goal": "Update rust-policy docs (example only).",
       "acceptance": [
         "No ambiguity introduced."
       ],
@@ -135,11 +135,11 @@
     "work_package_id": "pkg-write-builder-06",
     "timebox_minutes": 12,
     "ownership_paths": [
-      "python-style/"
+      "python-policy/"
     ],
     "dependencies": [],
     "task_contract": {
-      "goal": "Update python-style docs (example only).",
+      "goal": "Update python-policy docs (example only).",
       "acceptance": [
         "No ambiguity introduced."
       ],
