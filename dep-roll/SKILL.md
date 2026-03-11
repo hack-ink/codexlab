@@ -23,6 +23,12 @@ Upgrade the repository's dependency graph to the newest set that remains mutuall
 - Repo-native verification commands for each touched ecosystem.
 - Existing Dependabot PR list or GitHub visibility for final reconciliation, if available.
 
+## Scope discipline
+
+- Keep the execution path proportional to the actual repo and request.
+- If the repository or requested slice only involves one ecosystem, stay on that ecosystem instead of role-playing a cross-ecosystem rollout.
+- Use the full multi-ecosystem sequence only when the repository or request actually spans multiple ecosystems.
+
 ## Version policy
 
 - Target the latest versions that can pass together under the repo's actual compatibility constraints.
@@ -76,6 +82,7 @@ Upgrade the repository's dependency graph to the newest set that remains mutuall
         - Use `cargo upgrade` to change `Cargo.toml` requirements.
         - After tool-driven bumps, normalize manually controlled Cargo requirements back to bare `X.Y` strings in the manifest's existing style before final verification.
         - If `cargo upgrade` is unavailable, bump `Cargo.toml` constraints manually and record that `cargo-edit` was missing; do not pretend `cargo update` performed the upgrade.
+        - If the task is Rust-only, you can execute the Cargo slice end-to-end after inventory: preview with `cargo upgrade -n` (and optionally `cargo upgrade -n --incompatible`), bump direct `Cargo.toml` requirements with `cargo upgrade`, refresh `Cargo.lock` with plain `cargo update`, then run repo-native verification.
 
 4. Regenerate lockfiles and dependency artifacts from the updated manifests.
     - Never resolve generated dependency files manually when a package manager can regenerate them from the manifest/source of truth.
@@ -84,7 +91,8 @@ Upgrade the repository's dependency graph to the newest set that remains mutuall
     - Poetry:
         - Re-resolve the lock from the updated constraints with `poetry update --lock`, adding repo-specific group flags only when that repository actually uses them.
     - Cargo:
-        - Run `cargo update -w` after manifest changes to refresh `Cargo.lock`. This is the lockfile sync step, not the upgrade step.
+        - Run plain `cargo update` after manifest changes to refresh the full `Cargo.lock`. This is the lockfile sync step, not the manifest-upgrade step.
+        - Use `cargo update -w` only when you intentionally want a workspace-only lock refresh and the repository's scope makes that correct. Do not treat `-w` as the default full-lockfile refresh in a workspace.
     - If lockfiles require sync because an additional lockfile format is present, run:
         - `npm install --package-lock-only` (when `package-lock.json` exists).
 
@@ -142,7 +150,7 @@ If your repo uses Cargo workspace dependencies:
 - Lockfiles and generated dependency artifacts (never hand-edit):
   - `pnpm install`
   - `poetry update --lock`
-  - `cargo update -w`
+  - `cargo update`
 - Reconcile Dependabot last: `gh pr list --state open --search "author:app/dependabot"`.
 
 ## Common mistakes
@@ -151,6 +159,7 @@ If your repo uses Cargo workspace dependencies:
 - Treating `pnpm install` as if it upgraded direct dependency requirements.
 - Treating `poetry update` as if it upgraded `pyproject.toml` constraints.
 - Treating `cargo update` as if it upgraded `Cargo.toml` requirements.
+- Using `cargo update -w` as the default full-lockfile refresh in a workspace and then misreading remaining Cargo PRs as uncovered work.
 - Drifting manually edited manifest requirements away from `X.Y` intent and accidentally pinning patch releases.
 - Mixing ecosystems in one verification step (run verification for each touched stack).
 - Treating a missing GitHub/Dependabot view as success instead of reporting reconciliation as `blocked`.
