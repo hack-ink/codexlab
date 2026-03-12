@@ -9,13 +9,14 @@ import sys
 import tomllib
 
 
-POLICY_VERSION = 4
-DEFAULT_CHILD_POLICY = "any-agent"
-MAIN_THREAD_ONLY_POLICY = "main-thread-only"
-ALLOWED_KEYS = {"version", "main_thread_only"}
+POLICY_VERSION = 5
+DEFAULT_CHILD_POLICY = "allowed"
+CHILD_FORBIDDEN_POLICY = "child-forbidden"
+ALLOWED_KEYS = {"version", "child_forbidden"}
 SKILLS_REPO_ROOT = Path(__file__).resolve().parents[2]
 EMPTY_TEMPLATE_COMMENTS = [
     "# Optional denylist. Omitted skills are allowed by default.",
+    "# The shipped default forbids `sidecars` so child agents cannot re-enter control-plane fan-out.",
     "# Add known local skill names only when children must never self-initiate them.",
 ]
 
@@ -74,7 +75,7 @@ def list_known_skills(skills_root: Path = SKILLS_REPO_ROOT) -> set[str]:
 
 
 def blank_policy() -> dict[str, object]:
-    return {"version": POLICY_VERSION, "main_thread_only": []}
+    return {"version": POLICY_VERSION, "child_forbidden": ["sidecars"]}
 
 
 def load_policy(policy_path: Path) -> dict[str, object]:
@@ -82,6 +83,11 @@ def load_policy(policy_path: Path) -> dict[str, object]:
         return blank_policy()
 
     data = tomllib.loads(policy_path.read_text(encoding="utf-8"))
+    if "main_thread_only" in data:
+        raise ValueError(
+            "legacy field 'main_thread_only' is no longer supported in child-skill-policy.toml; "
+            "migrate to version 5 with child_forbidden"
+        )
     version = data.get("version", POLICY_VERSION)
     if not isinstance(version, int):
         raise ValueError(f"Invalid version {version!r} in {policy_path}")
@@ -94,24 +100,24 @@ def load_policy(policy_path: Path) -> dict[str, object]:
     unexpected_keys = sorted(key for key in data if key not in ALLOWED_KEYS)
     if unexpected_keys:
         raise ValueError(
-            "child-skill-policy.toml only supports version and main_thread_only in "
+            "child-skill-policy.toml only supports version and child_forbidden in "
             f"version {POLICY_VERSION}; unexpected keys: {', '.join(unexpected_keys)}"
         )
 
     policy = blank_policy()
-    policy["main_thread_only"] = normalize_skill_list(
-        data.get("main_thread_only"),
-        "main_thread_only",
+    policy["child_forbidden"] = normalize_skill_list(
+        data.get("child_forbidden"),
+        "child_forbidden",
     )
     known_skills = list_known_skills()
     unknown_skills = sorted(
         skill_name
-        for skill_name in policy["main_thread_only"]
+        for skill_name in policy["child_forbidden"]
         if skill_name not in known_skills
     )
     if unknown_skills:
         raise ValueError(
-            "child-skill-policy.toml main_thread_only entries must reference known local skills; "
+            "child-skill-policy.toml child_forbidden entries must reference known local skills; "
             f"unknown: {', '.join(unknown_skills)}"
         )
     return policy
@@ -124,11 +130,11 @@ def resolve_skill_policy(
 ) -> str:
     if policy is None:
         return DEFAULT_CHILD_POLICY
-    main_thread_only = policy.get("main_thread_only", [])
-    if not isinstance(main_thread_only, list):
-        raise ValueError("policy.main_thread_only must be a list")
-    if skill_name in main_thread_only:
-        return MAIN_THREAD_ONLY_POLICY
+    child_forbidden = policy.get("child_forbidden", [])
+    if not isinstance(child_forbidden, list):
+        raise ValueError("policy.child_forbidden must be a list")
+    if skill_name in child_forbidden:
+        return CHILD_FORBIDDEN_POLICY
     return DEFAULT_CHILD_POLICY
 
 
@@ -144,24 +150,24 @@ def validate_child_skill_use(
             f"unknown: {skill_name!r}"
         )
     effective_policy = resolve_skill_policy(skill_name, policy=policy)
-    if effective_policy == MAIN_THREAD_ONLY_POLICY:
+    if effective_policy == CHILD_FORBIDDEN_POLICY:
         raise ValueError(
-            f"child agents must not self-initiate main-thread-only skill {skill_name!r}"
+            f"child agents must not self-initiate child-forbidden skill {skill_name!r}"
         )
 
 
 def render_policy(policy: dict[str, object]) -> str:
-    main_thread_only = policy["main_thread_only"]
-    if not isinstance(main_thread_only, list):
-        raise ValueError("policy.main_thread_only must be a list")
+    child_forbidden = policy["child_forbidden"]
+    if not isinstance(child_forbidden, list):
+        raise ValueError("policy.child_forbidden must be a list")
 
     lines = [f"version = {policy['version']}", "", *EMPTY_TEMPLATE_COMMENTS]
-    if not main_thread_only:
-        lines.append("main_thread_only = []")
+    if not child_forbidden:
+        lines.append("child_forbidden = []")
         return "\n".join(lines) + "\n"
 
-    lines.append("main_thread_only = [")
-    for skill_name in main_thread_only:
+    lines.append("child_forbidden = [")
+    for skill_name in child_forbidden:
         lines.append(f'  "{skill_name}",')
     lines.append("]")
     return "\n".join(lines) + "\n"

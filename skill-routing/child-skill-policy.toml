@@ -1,5 +1,8 @@
-version = 4
+version = 5
 
 # Optional denylist. Omitted skills are allowed by default.
+# The shipped default forbids `sidecars` so child agents cannot re-enter control-plane fan-out.
 # Add known local skill names only when children must never self-initiate them.
-main_thread_only = []
+child_forbidden = [
+  "sidecars",
+]

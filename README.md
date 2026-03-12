@@ -4,7 +4,7 @@ This repository hosts reusable agent skills for Codex workflows.
 
 ## Available skills
 
-- `sidecars` - helper-agent fan-out guidance for one task, with a main-thread-first model and read-only `scout`/`skeptic` helpers (`sidecars/SKILL.md`).
+- `sidecars` - sidecar fan-out guidance for one task, with a main-thread-first model and read-only `scout`/`skeptic` sidecars (`sidecars/SKILL.md`).
 - `dep-roll` - latest-compatible dependency-graph upgrade workflow for pnpm, Poetry, and Cargo, with X.Y manifest-range discipline, tooling-owned lock regeneration, verification, and trailing Dependabot reconciliation (`dep-roll/SKILL.md`).
 - `python-policy` - Python policy for runtime boundaries and project-configured quality gates, deferring to checked-in bootstrap and allowing documented isolated runtimes when required (`python-policy/SKILL.md`).
 - `research` - research/investigation workflow that reads existing materials, clarifies unknowns with the user, and makes evidence-backed recommendations with websearch (`research/SKILL.md`).
@@ -13,7 +13,7 @@ This repository hosts reusable agent skills for Codex workflows.
 - `rust-policy` - Rust policy for scope, toolchain/workflow, safety, formatting, error handling, logging, and ownership, with `rustfmt` as the final formatting authority (`rust-policy/SKILL.md`).
 - `git-worktrees` - worktree setup and lifecycle guidance for isolated branches, independent parallel lanes, safe directory selection, and repo-native bootstrap (`git-worktrees/SKILL.md`).
 - `parallel-conflict-resolution` - conflict triage and reconciliation workflow for merge/rebase/cherry-pick collisions across worktrees or independent branches (`parallel-conflict-resolution/SKILL.md`).
-- `skill-routing` - generic skill-discovery and loading policy with an optional manual child-skill policy file; the shipped policy stays empty, uses a version-4 denylist with `main_thread_only = []`, and accepts only known local skill names as explicit restrictions (`skill-routing/SKILL.md`).
+- `skill-routing` - generic skill-discovery and loading policy with an optional manual child denylist; the shipped policy uses version 5 with `child_forbidden = ["sidecars"]` and accepts only known local skill names as explicit restrictions (`skill-routing/SKILL.md`).
 - `plan-writing` - plan-writing workflow for multi-step or risky tasks, including Plan mode handoff, evidence-grounded task decomposition, and durable plan docs using the `docs/plans/YYYY-MM-DD_<feature-name>.md` convention (`plan-writing/SKILL.md`).
 - `plan-execution` - execution workflow for saved implementation plans, with critical plan review, checkpoint-based batches, repo-native verification, and staged progress reporting (`plan-execution/SKILL.md`).
 - `pre-commit` - repository commit/push gate with repo-specific Makefile.toml task checks and workflow validation (`pre-commit/SKILL.md`).

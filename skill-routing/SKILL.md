@@ -30,22 +30,22 @@ description: Use at the start of a task, before clarifying questions, or before 
 ## Child skill policy
 
 - Child agents may still use skill discovery.
-- When the current agent is a child, resolve skill policy from `child-skill-policy.toml`.
-- The shipped policy file is intentionally empty and uses the version-4 denylist shape.
-- `main_thread_only` is the only restriction field in this format.
+- When the current agent is a child, resolve the denylist from `child-skill-policy.toml`.
+- The shipped policy file uses the version-5 neutral denylist shape.
+- `child_forbidden` is the only restriction field in this format.
 - If the policy file omits a skill, child agents may use it when relevant.
 - Policy entries must use known local skill names from this repo's installable skill catalog.
-- Skills listed in `main_thread_only` must never be self-initiated by a child.
+- Skills listed in `child_forbidden` must never be self-initiated by a child.
 - There is no dispatch-level skill grant list in this source-repo design.
 
 ## Policy lifecycle
 
-- The shipped policy file is initialized but empty.
+- The shipped policy file is initialized with only `sidecars` forbidden by default.
 - There is no automatic bootstrap or proactive filling.
 - Users fill the policy manually if they want restrictions.
 - Users may also ask an agent to edit the policy file for them.
 - `scripts/build_child_skill_policy.py` initializes or canonicalizes the policy file but does not classify or populate skills.
-- The helper rejects unknown skill names and legacy keys from older policy shapes.
+- The helper rejects unknown skill names and legacy keys such as `main_thread_only`.
 - If the user wants a canonical empty template, rerun:
   - `python3 scripts/build_child_skill_policy.py --write`
 
@@ -66,12 +66,12 @@ description: Use at the start of a task, before clarifying questions, or before 
 Examples:
 
 - "Fix this bug" -> load debugging workflow skills before language- or framework-specific skills.
-- "I have two unrelated implementation tasks in the same repo" -> load `git-worktrees` first so each task gets its own lane.
-- "Write the implementation plan" or a task already running in Plan mode -> load `plan-writing` and produce or update the plan artifact before any code changes.
-- "Execute this plan" or "continue from `docs/plans/...`" -> load `plan-execution` and treat the saved plan as the execution entrypoint.
-- "Build a React dashboard" -> load planning or design process skills first if they apply, then the frontend implementation skill.
-- "This merge/rebase/cherry-pick conflict came from parallel branches or worktrees" -> load `parallel-conflict-resolution`.
-- "Prepare a commit" -> load the pre-commit gate skill before committing or pushing.
+- "I have two unrelated implementation tasks in the same repo" -> isolate them before proceeding so each task has its own execution stream.
+- "Write the implementation plan" or a task already running in Plan mode -> load the planning workflow before any code changes.
+- "Execute this plan" or "continue from `docs/plans/...`" -> load the workflow that treats the saved plan as the execution entrypoint.
+- "Build a React dashboard" -> load the smallest set of process and implementation skills that match the task.
+- "This merge/rebase/cherry-pick conflict came from parallel branches or worktrees" -> load the workflow that resolves cross-branch conflicts.
+- "Prepare a commit" -> load the commit/push gate before committing or pushing.
 
 ## Follow-through
 
