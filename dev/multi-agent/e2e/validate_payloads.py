@@ -26,6 +26,7 @@ SKILL_ROUTING_HELPER_PATH = (
 SKILL_ROUTING_POLICY_PATH = REPO_ROOT / "skill-routing" / "child-skill-policy.toml"
 FORBIDDEN_FIELDS = {
     "agent_type",
+    "authorized_skills",
     "evidence_requirements",
     "handoff_requests",
     "recovery",
@@ -136,19 +137,6 @@ def assert_dispatch_fixture(path: Path) -> None:
         if role not in ALLOWED_ROLES:
             raise AssertionError(f"{label}: unexpected role {role!r}")
 
-        authorized_skills = dispatch.get("authorized_skills", [])
-        if authorized_skills:
-            if not isinstance(authorized_skills, list):
-                raise AssertionError(f"{label}: authorized_skills must be an array when present")
-            if not all(isinstance(skill, str) and skill.strip() for skill in authorized_skills):
-                raise AssertionError(
-                    f"{label}: authorized_skills entries must be non-empty strings"
-                )
-            assert_authorized_skills_contract(
-                authorized_skills,
-                label=label,
-            )
-
         ticket_id = dispatch["ticket_id"]
         if ticket_id in ticket_ids:
             raise AssertionError(f"{label}: duplicate ticket_id {ticket_id!r}")
@@ -186,83 +174,35 @@ def load_manual_skill_policy() -> dict[str, Any]:
     raise AssertionError("Shared skill policy helper must expose load_policy()")
 
 
-def assert_authorized_skills_contract(
-    authorized_skills: list[str],
-    *,
-    label: str,
-    policy: dict[str, Any] | None = None,
-) -> None:
-    if policy is None:
-        policy = load_manual_skill_policy()
-
-    if hasattr(SKILL_POLICY_HELPER, "validate_authorized_skills"):
-        try:
-            SKILL_POLICY_HELPER.validate_authorized_skills(
-                authorized_skills,
-                policy=policy,
-            )
-            return
-        except ValueError as exc:
-            raise AssertionError(f"{label}: {exc}") from exc
-
-    default_policy = policy.get(
-        "default_child_policy", SKILL_POLICY_HELPER.DEFAULT_CHILD_POLICY
-    )
-    for skill_name in authorized_skills:
-        effective_policy_name = SKILL_POLICY_HELPER.resolve_skill_policy(
-            skill_name,
-            policy=policy,
-        )
-        if effective_policy_name == "dispatch-authorized":
-            continue
-        if effective_policy_name == "main-thread-only":
-            raise AssertionError(
-                f"{label}: authorized_skills must not grant main-thread-only skill {skill_name!r}"
-            )
-        raise AssertionError(
-            f"{label}: authorized_skills is only for skills explicitly marked dispatch-authorized; got {skill_name!r} with policy {effective_policy_name or default_policy!r}"
-        )
-
-
-def assert_authorized_skill_negative_cases() -> None:
+def assert_child_policy_behavior() -> None:
     manual_policy = {
-        "version": getattr(SKILL_POLICY_HELPER, "POLICY_VERSION", 3),
-        "default_child_policy": SKILL_POLICY_HELPER.DEFAULT_CHILD_POLICY,
-        "skills": {
-            "plan-execution": "dispatch-authorized",
-            "multi-agent": "main-thread-only",
-        },
+        "version": getattr(SKILL_POLICY_HELPER, "POLICY_VERSION", 4),
+        "main_thread_only": ["multi-agent", "pre-commit"],
     }
 
-    assert_authorized_skills_contract(
-        ["plan-execution"],
-        label="authorized_skills.positive",
-        policy=manual_policy,
-    )
-    print("OK: authorized_skills.positive accepted under manual policy")
+    if SKILL_POLICY_HELPER.resolve_skill_policy("multi-agent", policy=manual_policy) != "main-thread-only":
+        raise AssertionError("child_policy_behavior: multi-agent must resolve as main-thread-only")
+    if SKILL_POLICY_HELPER.resolve_skill_policy("rust-policy", policy=manual_policy) != "any-agent":
+        raise AssertionError("child_policy_behavior: omitted skills must resolve as any-agent")
 
-    invalid_cases = [
-        ("main_thread_only", ["multi-agent"], "main-thread-only"),
-        ("any_agent", ["rust-policy"], "explicitly marked dispatch-authorized"),
-        ("unknown", ["not-a-real-skill"], "known local skills"),
-    ]
+    try:
+        SKILL_POLICY_HELPER.validate_child_skill_use("multi-agent", policy=manual_policy)
+    except ValueError as exc:
+        if "main-thread-only" not in str(exc):
+            raise AssertionError(
+                f"child_policy_behavior.blocked: expected main-thread-only error, got {exc!r}"
+            ) from exc
+        print(f"OK: child_policy_behavior.blocked rejected ({exc})")
+    else:
+        raise AssertionError("child_policy_behavior.blocked: expected rejection")
 
-    for label, authorized_skills, expected_substring in invalid_cases:
-        try:
-            assert_authorized_skills_contract(
-                authorized_skills,
-                label=f"authorized_skills.{label}",
-                policy=manual_policy,
-            )
-        except AssertionError as exc:
-            message = str(exc)
-            if expected_substring not in message:
-                raise AssertionError(
-                    f"authorized_skills.{label}: expected {expected_substring!r}, got {message!r}"
-                ) from exc
-            print(f"OK: authorized_skills.{label} rejected ({message})")
-            continue
-        raise AssertionError(f"authorized_skills.{label}: expected rejection")
+    SKILL_POLICY_HELPER.validate_child_skill_use("rust-policy", policy=manual_policy)
+    print("OK: child_policy_behavior.omitted_allowed")
+
+    loaded_manual_policy = load_manual_skill_policy()
+    if SKILL_POLICY_HELPER.resolve_skill_policy("multi-agent", policy=loaded_manual_policy) != "any-agent":
+        raise AssertionError("repo manual policy should leave omitted skills allowed by default")
+    print("OK: repo child policy keeps omitted skills allowed")
 
 
 def assert_manual_policy_negative_cases() -> None:
@@ -270,24 +210,38 @@ def assert_manual_policy_negative_cases() -> None:
         (
             "unknown_skill_entry",
             """
-            version = 3
-            default_child_policy = "any-agent"
+            version = 4
 
-            [skills]
-            "not-a-real-skill" = "dispatch-authorized"
+            main_thread_only = ["not-a-real-skill"]
             """,
             "known local skills",
         ),
         (
-            "non_any_agent_default",
+            "legacy_default_child_policy",
             """
-            version = 3
+            version = 4
             default_child_policy = "main-thread-only"
+            """,
+            "unexpected keys: default_child_policy",
+        ),
+        (
+            "legacy_skills_table",
+            """
+            version = 4
 
             [skills]
-            "rust-policy" = "any-agent"
+            "multi-agent" = "main-thread-only"
             """,
-            "default_child_policy='any-agent'",
+            "unexpected keys: skills",
+        ),
+        (
+            "unsupported_version",
+            """
+            version = 3
+
+            main_thread_only = ["multi-agent"]
+            """,
+            "Unsupported policy version",
         ),
     ]
 
@@ -343,7 +297,7 @@ def main() -> None:
     for path in DISPATCH_FIXTURES:
         assert_dispatch_fixture(path)
 
-    assert_authorized_skill_negative_cases()
+    assert_child_policy_behavior()
     assert_manual_policy_negative_cases()
 
     for path in RESULT_FIXTURES:

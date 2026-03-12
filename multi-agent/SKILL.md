@@ -55,15 +55,13 @@ Read the following files and follow them literally:
 
 - Broker dispatches use `ticket-dispatch/1`.
 - Worker results use `ticket-result/1`.
-- Broker uses `ticket-dispatch/1.authorized_skills` only when the manual child skill policy marks a known local skill `dispatch-authorized`.
 
 ## Notes
 
 - The Broker owns follow-up ticket creation, parent-task bookkeeping, salvage decisions, and review-gate ordering.
 - Workers report only what they did, what changed, what they verified, and what is needed to unblock.
 - The protocol intentionally omits worker-generated handoffs, partial checkpoints, and nested recovery payloads.
-- If the manual child policy is empty, child skill use is default-allow and `authorized_skills` is usually unnecessary.
-- If a child needs a known local skill that the manual child policy marks `dispatch-authorized`, the Broker must name it in `authorized_skills`.
+- The child skill policy is a user-managed denylist: omitted skills are allowed by default, and only `main_thread_only` entries block child self-initiation.
 - The child skill policy is user-managed repo state, not broker-managed runtime state.
 
 ## Quick reference

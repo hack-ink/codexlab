@@ -7,7 +7,7 @@ This directory contains schema-valid fixtures and validators for the reset proto
 - `ticket-dispatch/1` examples for Runner, Builder, and Inspector tickets
 - `ticket-result/1` examples for done and blocked results
 - route selection fixtures for `single` and `multi`
-- repo-local manual-policy validation for `authorized_skills`, policy skill names, and fixed `default_child_policy`
+- repo-local child-policy validation for `main_thread_only`, omitted-skill allow behavior, and known-skill enforcement
 - broker-local recovery expectations for invalid or stalled workers
 
 ## Validate

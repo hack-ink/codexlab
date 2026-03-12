@@ -31,15 +31,12 @@ description: Use at the start of a task, before clarifying questions, or before 
 
 - Child agents may still use skill discovery.
 - When the current agent is a child, resolve skill policy from `child-skill-policy.toml`.
-- The shipped policy file is intentionally empty and defaults to `any-agent`.
-- `default_child_policy` is fixed to `any-agent` in this format; use `[skills]` entries for exceptions instead of changing the default.
+- The shipped policy file is intentionally empty and uses the version-4 denylist shape.
+- `main_thread_only` is the only restriction field in this format.
 - If the policy file omits a skill, child agents may use it when relevant.
-- Only skills explicitly listed in the policy file are restricted.
 - Policy entries must use known local skill names from this repo's installable skill catalog.
-- `main-thread-only` skills must never be self-initiated by a child when the manual policy marks them that way.
-- `dispatch-authorized` skills require explicit dispatch authorization only when the manual policy marks them that way.
-- For brokered multi-agent tickets, that authorization lives in `ticket-dispatch/1.authorized_skills`.
-- If the policy file is empty, `authorized_skills` is usually unnecessary.
+- Skills listed in `main_thread_only` must never be self-initiated by a child.
+- There is no dispatch-level skill grant list in this source-repo design.
 
 ## Policy lifecycle
 
@@ -48,7 +45,7 @@ description: Use at the start of a task, before clarifying questions, or before 
 - Users fill the policy manually if they want restrictions.
 - Users may also ask an agent to edit the policy file for them.
 - `scripts/build_child_skill_policy.py` initializes or canonicalizes the policy file but does not classify or populate skills.
-- The helper rejects unknown skill names and non-`any-agent` defaults.
+- The helper rejects unknown skill names and legacy keys from older policy shapes.
 - If the user wants a canonical empty template, rerun:
   - `python3 scripts/build_child_skill_policy.py --write`
 

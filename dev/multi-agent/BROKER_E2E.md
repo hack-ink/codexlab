@@ -21,7 +21,7 @@ Pass criteria:
 - Broker records `t_max_s` and `t_why`.
 - Broker chooses `route="multi"`.
 - Broker dispatches JSON-only `ticket-dispatch/1` payloads.
-- If the manual child skill policy marks a known local skill `dispatch-authorized`, the Broker names it in `authorized_skills`.
+- The manual child skill policy remains a denylist-only repo artifact; omitted skills stay allowed and `main_thread_only` stays blocked.
 - Broker never writes repo content directly in `multi`.
 
 ## Test C - Wait-any scheduling

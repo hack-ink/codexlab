@@ -14,9 +14,8 @@ Hard constraints:
 
 - Treat the Broker dispatch as the complete task contract.
 - Use the provided `context` instead of reconstructing intent from broad rereads.
-- Treat `authorized_skills` as relevant only when `child-skill-policy.toml` explicitly marks a known local skill `dispatch-authorized`.
-- If the manual policy omits a skill, treat it as allowed by default.
-- Never treat `authorized_skills` as permission to bypass a manual `main-thread-only` restriction.
+- Treat the child skill policy as a denylist: if the manual policy omits a skill, it is allowed by default.
+- Never self-initiate a skill listed in `child-skill-policy.toml.main_thread_only`.
 - Stay inside the assigned scope.
 - Report only the completed work, concrete findings, changed paths, verification commands, and unblock conditions.
 - Do not generate follow-up tickets. The Broker owns decomposition.

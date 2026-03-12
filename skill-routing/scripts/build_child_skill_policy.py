@@ -9,10 +9,15 @@ import sys
 import tomllib
 
 
-POLICY_VERSION = 3
+POLICY_VERSION = 4
 DEFAULT_CHILD_POLICY = "any-agent"
-POLICY_VALUES = {"any-agent", "dispatch-authorized", "main-thread-only"}
+MAIN_THREAD_ONLY_POLICY = "main-thread-only"
+ALLOWED_KEYS = {"version", "main_thread_only"}
 SKILLS_REPO_ROOT = Path(__file__).resolve().parents[2]
+EMPTY_TEMPLATE_COMMENTS = [
+    "# Optional denylist. Omitted skills are allowed by default.",
+    "# Add known local skill names only when children must never self-initiate them.",
+]
 
 
 def parse_args() -> argparse.Namespace:
@@ -34,20 +39,18 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def normalize_policy_table(raw: object, table_name: str) -> dict[str, str]:
+def normalize_skill_list(raw: object, field_name: str) -> list[str]:
     if raw is None:
-        return {}
-    if not isinstance(raw, dict):
-        raise ValueError(f"{table_name} must be a TOML table")
-    normalized: dict[str, str] = {}
-    for key, value in raw.items():
-        if not isinstance(key, str) or not isinstance(value, str):
-            raise ValueError(f"{table_name} entries must be string = string")
-        if value not in POLICY_VALUES:
-            raise ValueError(f"Invalid policy value {value!r} for {key!r}")
-        if value != DEFAULT_CHILD_POLICY:
-            normalized[key] = value
-    return dict(sorted(normalized.items()))
+        return []
+    if not isinstance(raw, list):
+        raise ValueError(f"{field_name} must be a TOML array")
+
+    normalized: list[str] = []
+    for value in raw:
+        if not isinstance(value, str) or not value.strip():
+            raise ValueError(f"{field_name} entries must be non-empty strings")
+        normalized.append(value)
+    return sorted(set(normalized))
 
 
 def list_known_skills(skills_root: Path = SKILLS_REPO_ROOT) -> set[str]:
@@ -70,17 +73,8 @@ def list_known_skills(skills_root: Path = SKILLS_REPO_ROOT) -> set[str]:
     return known
 
 
-def blank_policy(*, default_child_policy: str = DEFAULT_CHILD_POLICY) -> dict[str, object]:
-    if default_child_policy != DEFAULT_CHILD_POLICY:
-        raise ValueError(
-            "manual child skill policy currently supports only "
-            f"default_child_policy={DEFAULT_CHILD_POLICY!r}"
-        )
-    return {
-        "version": POLICY_VERSION,
-        "default_child_policy": default_child_policy,
-        "skills": {},
-    }
+def blank_policy() -> dict[str, object]:
+    return {"version": POLICY_VERSION, "main_thread_only": []}
 
 
 def load_policy(policy_path: Path) -> dict[str, object]:
@@ -88,31 +82,36 @@ def load_policy(policy_path: Path) -> dict[str, object]:
         return blank_policy()
 
     data = tomllib.loads(policy_path.read_text(encoding="utf-8"))
-    default_child_policy = data.get("default_child_policy", DEFAULT_CHILD_POLICY)
     version = data.get("version", POLICY_VERSION)
     if not isinstance(version, int):
         raise ValueError(f"Invalid version {version!r} in {policy_path}")
-    if version not in {2, POLICY_VERSION}:
-        raise ValueError(f"Unsupported policy version {version!r} in {policy_path}")
-    if default_child_policy != DEFAULT_CHILD_POLICY:
+    if version != POLICY_VERSION:
         raise ValueError(
-            "manual child skill policy currently supports only "
-            f"default_child_policy={DEFAULT_CHILD_POLICY!r} in {policy_path}"
+            f"Unsupported policy version {version!r} in {policy_path}; "
+            f"expected {POLICY_VERSION}"
         )
 
-    raw_skills = data.get("skills")
-    if raw_skills is None and version == 2:
-        raw_skills = data.get("generated")
+    unexpected_keys = sorted(key for key in data if key not in ALLOWED_KEYS)
+    if unexpected_keys:
+        raise ValueError(
+            "child-skill-policy.toml only supports version and main_thread_only in "
+            f"version {POLICY_VERSION}; unexpected keys: {', '.join(unexpected_keys)}"
+        )
 
-    policy = blank_policy(default_child_policy=default_child_policy)
-    policy["skills"] = normalize_policy_table(raw_skills, "skills")
+    policy = blank_policy()
+    policy["main_thread_only"] = normalize_skill_list(
+        data.get("main_thread_only"),
+        "main_thread_only",
+    )
     known_skills = list_known_skills()
     unknown_skills = sorted(
-        skill_name for skill_name in policy["skills"] if skill_name not in known_skills
+        skill_name
+        for skill_name in policy["main_thread_only"]
+        if skill_name not in known_skills
     )
     if unknown_skills:
         raise ValueError(
-            "child-skill-policy.toml entries must reference known local skills; "
+            "child-skill-policy.toml main_thread_only entries must reference known local skills; "
             f"unknown: {', '.join(unknown_skills)}"
         )
     return policy
@@ -125,59 +124,46 @@ def resolve_skill_policy(
 ) -> str:
     if policy is None:
         return DEFAULT_CHILD_POLICY
-    skills = policy.get("skills", {})
-    if not isinstance(skills, dict):
-        raise ValueError("policy.skills must be a mapping")
-    value = skills.get(skill_name, policy.get("default_child_policy", DEFAULT_CHILD_POLICY))
-    if value not in POLICY_VALUES:
-        raise ValueError(f"Invalid effective policy {value!r} for {skill_name!r}")
-    return value
+    main_thread_only = policy.get("main_thread_only", [])
+    if not isinstance(main_thread_only, list):
+        raise ValueError("policy.main_thread_only must be a list")
+    if skill_name in main_thread_only:
+        return MAIN_THREAD_ONLY_POLICY
+    return DEFAULT_CHILD_POLICY
 
 
-def validate_authorized_skills(
-    authorized_skills: list[str],
+def validate_child_skill_use(
+    skill_name: str,
     *,
     policy: dict[str, object],
 ) -> None:
     known_skills = list_known_skills()
-    for skill_name in authorized_skills:
-        if skill_name not in known_skills:
-            raise ValueError(
-                "authorized_skills must reference known local skills; "
-                f"unknown: {skill_name!r}"
-            )
-        effective_policy = resolve_skill_policy(
-            skill_name,
-            policy=policy,
-        )
-        if effective_policy == "dispatch-authorized":
-            continue
-        if effective_policy == "main-thread-only":
-            raise ValueError(
-                f"authorized_skills must not grant main-thread-only skill {skill_name!r}"
-            )
+    if skill_name not in known_skills:
         raise ValueError(
-            "authorized_skills is only for skills explicitly marked "
-            f"dispatch-authorized in child-skill-policy.toml; got {skill_name!r}"
+            "child skill use must reference known local skills; "
+            f"unknown: {skill_name!r}"
+        )
+    effective_policy = resolve_skill_policy(skill_name, policy=policy)
+    if effective_policy == MAIN_THREAD_ONLY_POLICY:
+        raise ValueError(
+            f"child agents must not self-initiate main-thread-only skill {skill_name!r}"
         )
 
 
 def render_policy(policy: dict[str, object]) -> str:
-    lines = [
-        f"version = {policy['version']}",
-        f'default_child_policy = "{policy["default_child_policy"]}"',
-        "",
-        "[skills]",
-        "# Optional manual restrictions. Empty means child agents may use any skill.",
-        "# Add entries only when you want to restrict a known local skill explicitly.",
-        '# Example: "plan-execution" = "dispatch-authorized"',
-        '# Example: "multi-agent" = "main-thread-only"',
-    ]
-    skills = policy["skills"]
-    if not isinstance(skills, dict):
-        raise ValueError("policy.skills must be a mapping")
-    for name, value in skills.items():
-        lines.append(f'"{name}" = "{value}"')
+    main_thread_only = policy["main_thread_only"]
+    if not isinstance(main_thread_only, list):
+        raise ValueError("policy.main_thread_only must be a list")
+
+    lines = [f"version = {policy['version']}", "", *EMPTY_TEMPLATE_COMMENTS]
+    if not main_thread_only:
+        lines.append("main_thread_only = []")
+        return "\n".join(lines) + "\n"
+
+    lines.append("main_thread_only = [")
+    for skill_name in main_thread_only:
+        lines.append(f'  "{skill_name}",')
+    lines.append("]")
     return "\n".join(lines) + "\n"
 
 

@@ -35,7 +35,8 @@ def main() -> None:
         "Test B - Routing gate (`multi`)": [
             'route="multi"',
             "ticket-dispatch/1",
-            "authorized_skills",
+            "denylist-only",
+            "main_thread_only",
             "Broker never writes repo content directly in `multi`."
         ],
         "Test C - Wait-any scheduling": [

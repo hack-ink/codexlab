@@ -7,7 +7,7 @@ The current dev harness covers only the reset protocol:
 - `ticket-dispatch/1`
 - `ticket-result/1`
 - broker-local follow-up generation, salvage, and review-gate bookkeeping
-- manual-policy-aware `authorized_skills` enforcement against the repo-local child-skill policy, including known-skill validation
+- repo-local denylist validation for `main_thread_only` and known-skill enforcement in the child skill policy
 
 ## Quick smoke
 

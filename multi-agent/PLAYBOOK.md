@@ -30,7 +30,6 @@ Optional dispatch fields:
 - `constraints`
 - `context`
 - `depends_on`
-- `authorized_skills`
 - `write_scope`
 - `review_mode`
 
@@ -39,8 +38,7 @@ Role rules:
 - `write_scope` is required only for Builder tickets.
 - `review_mode` is allowed only for Inspector tickets.
 - Runner and Inspector tickets carry no write lock.
-- `authorized_skills` is only relevant when the manual child skill policy marks a known local skill `dispatch-authorized`; omit it or send `[]` when none are authorized.
-- If the manual policy omits a skill, the child may use it without listing it in `authorized_skills`.
+- The child skill policy is denylist-only: omitted skills are allowed by default, and `main_thread_only` entries remain blocked.
 
 Dispatch example:
 
