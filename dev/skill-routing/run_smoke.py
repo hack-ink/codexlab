@@ -54,19 +54,20 @@ def assert_repo_template_empty(helper) -> None:
 
 
 def assert_denylist_fixture(helper) -> None:
-    known_skills = helper.list_known_skills()
-    expected_denylist = {"multi-agent", "pre-commit"}
-    missing = sorted(expected_denylist - known_skills)
-    if missing:
-        raise AssertionError(
-            f"denylist smoke fixture must reference known local skills; missing={missing}"
-        )
+    known_skills = sorted(helper.list_known_skills())
+    if len(known_skills) < 2:
+        raise AssertionError("denylist smoke fixture needs at least two known local skills")
+
+    denylisted_skill = known_skills[0]
+    allowed_skill = known_skills[1]
+    expected_denylist = {denylisted_skill}
 
     fixture_text = """
 version = 4
 
-main_thread_only = ["pre-commit", "multi-agent", "pre-commit"]
+main_thread_only = ["{denylisted_skill}", "{denylisted_skill}"]
 """.strip()
+    fixture_text = fixture_text.format(denylisted_skill=denylisted_skill)
 
     with tempfile.TemporaryDirectory() as tmp_dir:
         fixture_path = Path(tmp_dir) / "child-skill-policy.toml"
@@ -80,13 +81,13 @@ main_thread_only = ["pre-commit", "multi-agent", "pre-commit"]
             f"{sorted(expected_denylist)!r}, got {sorted(actual_denylist)!r}"
         )
 
-    if helper.resolve_skill_policy("multi-agent", policy=policy) != helper.MAIN_THREAD_ONLY_POLICY:
+    if helper.resolve_skill_policy(denylisted_skill, policy=policy) != helper.MAIN_THREAD_ONLY_POLICY:
         raise AssertionError("denylisted skills must resolve as main-thread-only")
-    if helper.resolve_skill_policy("rust-policy", policy=policy) != helper.DEFAULT_CHILD_POLICY:
+    if helper.resolve_skill_policy(allowed_skill, policy=policy) != helper.DEFAULT_CHILD_POLICY:
         raise AssertionError("omitted skills must stay allowed by default")
 
     try:
-        helper.validate_child_skill_use("multi-agent", policy=policy)
+        helper.validate_child_skill_use(denylisted_skill, policy=policy)
     except ValueError as exc:
         if "main-thread-only" not in str(exc):
             raise AssertionError(
@@ -96,7 +97,7 @@ main_thread_only = ["pre-commit", "multi-agent", "pre-commit"]
     else:
         raise AssertionError("denylisted skill should be rejected")
 
-    helper.validate_child_skill_use("rust-policy", policy=policy)
+    helper.validate_child_skill_use(allowed_skill, policy=policy)
     print("OK: omitted skill remains allowed")
 
 

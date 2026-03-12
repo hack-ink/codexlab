@@ -1,9 +1,0 @@
-{
-  "route_case": {
-    "tiny_clear_low_risk": true,
-    "t_max_s": 45,
-    "expected_route": "single"
-  },
-  "tickets": [],
-  "expectations": {}
-}

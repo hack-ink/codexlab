@@ -52,8 +52,8 @@ docs/plans/2026-03-10_query-ast.md
 - Use task-level `Status` as the only completion authority. Keep `Execution State` limited to resume metadata such as `Last Updated`, `Next Checkpoint`, and `Blockers`.
 - Keep ephemeral chatter out of the plan. Notes like "read file", "thinking", or "retrying command" belong in chat unless they change execution.
 - For important drift or decision changes, add a short factual note with the evidence source that caused the update.
-- Reference adjacent skills for operational procedure instead of re-documenting them inline. Point to flows like `git-worktrees`, `pre-commit`, or `multi-agent` when they apply.
-- If the work will likely split into a separate worktree, review stop, or `multi-agent` lane, say so in the plan instead of pretending the whole effort is one uninterrupted lane.
+- Reference adjacent workflows for operational procedure instead of re-documenting them inline.
+- If the work will likely need an isolated workspace, a review stop, or a helper round, say so in the plan instead of pretending the whole effort is one uninterrupted lane.
 
 ## Planning workflow
 
@@ -72,7 +72,7 @@ docs/plans/2026-03-10_query-ast.md
 - Include exact verification commands when known, using repo-native workflows instead of generic guesses.
 - Make accountability visible without ceremony. Each task should have one clear owner.
 - Call out when work should happen in an isolated worktree or when tasks can be parallelized safely.
-- Call out review or routing boundaries when a checkpoint should stop for inspection, hand off to `plan-execution`, or move into a separate worktree/PR-sized/`multi-agent` lane.
+- Call out review or helper boundaries when a checkpoint should stop for inspection, hand off to execution, or use bounded helper fan-out.
 - If docs, migrations, config, or rollout steps matter, include them explicitly rather than leaving them implied.
 
 ## Required plan structure
@@ -121,7 +121,7 @@ Every plan should follow this shape:
 
 **Owner**
 
-<Who is accountable for driving this checkpoint or execution lane handoff. This is not `multi-agent` role selection or `ownership_paths` write authority.>
+<Who is accountable for driving this checkpoint or execution handoff. This is not child-role selection or write authority delegation.>
 
 **Status**
 
@@ -170,13 +170,13 @@ pending
 - Prefer "Modify `path/to/router/file` to register the new endpoint" over "Update routing".
 - Prefer "Run the repo's verified test or lint command" over "Run tests".
 - Give each task one clear owner, even if the same executor owns most of the plan.
-- Use `Owner` for checkpoint accountability and execution handoff, not for `multi-agent` role selection or `ownership_paths` authority.
+- Use `Owner` for checkpoint accountability and execution handoff, not for child-role selection or write authority.
 - Use explicit task status values such as `pending`, `in progress`, `blocked`, and `done`.
 - Treat task-level `Status` as the only completion authority. Use `Execution State` only for resume metadata, not for a second progress field.
 - If a task depends on a prior task, say so explicitly.
-- If a task may need a worktree, say so explicitly and point to the `git-worktrees` workflow.
-- Reference adjacent skills for operational mechanics instead of pasting their procedures into the plan.
-- If a task should stop for review or branch into a separate PR-sized or `multi-agent` stream, say where execution should pause and reroute.
+- If a task may need an isolated workspace, say so explicitly.
+- Reference adjacent workflows for operational mechanics instead of pasting their procedures into the plan.
+- If a task should stop for review or pause for a helper round, say where execution should pause and why.
 - For material decisions or drift corrections, use a short `Decision Notes` bullet with the reason and evidence pointer instead of a long narrative.
 - If a task is risky or likely to branch, note the decision point before the risky step.
 
@@ -188,7 +188,7 @@ After saving the plan:
 - Summarize the execution shape in a few lines.
 - List any open questions or assumptions that still need confirmation.
 - Call out the initial execution state and any expected worktree or review boundary.
-- If execution should happen next, recommend whether to proceed sequentially in the current session or hand the saved plan to `plan-execution` in the current or a separate session.
+- If execution should happen next, recommend whether to proceed sequentially in the current session or hand the saved plan to a later execution session.
 
 ## Red flags
 

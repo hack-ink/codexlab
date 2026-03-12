@@ -22,17 +22,17 @@ Typical triggers:
 - Review the plan critically against the current repo state before coding. Do not assume the plan is still correct.
 - If the plan is stale, contradictory, or missing a decision needed to proceed, stop and update or clarify the plan before implementation.
 - Keep the saved plan current when durable execution state changes. The plan should stay resumable for the next session.
-- Prefer an isolated worktree when branch isolation, risky changes, or concurrent work make that useful. Follow `git-worktrees` when applicable.
-- Before any commit or push, follow the local `pre-commit` gate. If the repo or user requires review, stop at a reviewable checkpoint instead of self-approving.
+- Prefer an isolated workspace when branch isolation, risky changes, or concurrent work make that useful.
+- Before any commit or push, follow the local commit/push gate. If the repo or user requires review, stop at a reviewable checkpoint instead of self-approving.
 
 ## Plan maintenance contract
 
 - Update the saved plan when execution changes durable state: task status, owner, next checkpoint, blockers, dependencies, verification path, or a decision that changes later work.
 - Task-level `Status` is the sole completion authority for resuming work. Treat `Execution State` as resume metadata only.
-- Update the saved plan when a checkpoint becomes a review stop, a separate worktree candidate, or a new PR-sized or `multi-agent` stream.
+- Update the saved plan when a checkpoint becomes a review stop, an isolated-workspace candidate, or a new helper round.
 - A chat-only note is enough for transient execution detail that does not change what the next executor should do.
 - Keep plan updates terse. Record state and evidence, not a diary.
-- Keep operational procedure in adjacent skills. Reference flows like `git-worktrees`, `pre-commit`, or `multi-agent` instead of re-documenting them in the saved plan.
+- Keep operational procedure in adjacent workflows instead of re-documenting it in the saved plan.
 
 ## Execution workflow
 
@@ -53,7 +53,7 @@ Typical triggers:
 - If the plan decomposes work into very small tasks, execute a small batch of 1-3 closely related tasks before stopping.
 - If the plan's boundary is naturally larger or smaller than that, follow the plan's structure instead of forcing a fixed batch size.
 - Stop early when a blocker appears, verification fails, or the remaining work would cross into a new review boundary.
-- If the remaining work now belongs in a separate worktree, PR-sized lane, or `multi-agent` flow, stop and reroute instead of stretching the current batch.
+- If the remaining work now needs an isolated workspace or a bounded helper round, stop and reroute instead of stretching the current batch.
 
 ## Verification
 
@@ -66,7 +66,7 @@ Typical triggers:
 ## When to update the saved plan
 
 - Mark tasks `in progress`, `blocked`, or `done` when that status matters for resuming later.
-- Treat `Owner` as checkpoint accountability or execution lane handoff, not as `multi-agent` role selection or `ownership_paths` write authority.
+- Treat `Owner` as checkpoint accountability or execution handoff, not as child-role selection or write authority.
 - Refresh `Execution State` metadata when `Last Updated`, `Next Checkpoint`, or `Blockers` change. Do not use it as a second completion channel.
 - Update file paths, commands, or task text if the original plan is no longer accurate.
 - Add or refresh a short `Decision Notes` entry when a material decision or drift update changes the path or rationale. Include the evidence source tersely.
@@ -85,11 +85,11 @@ Then either continue with the next checkpoint or wait if the user asked for stag
 
 ## Integration
 
-- `plan-writing` produces the plan artifact that this skill executes.
-- `git-worktrees` prepares an isolated workspace when execution should not happen in the current checkout.
-- `pre-commit` applies before `git commit` or `git push`.
+- This skill consumes a saved plan artifact produced earlier.
+- Use the repo's isolated-workspace workflow when execution should not happen in the current checkout.
+- Apply the repo's commit/push gate before `git commit` or `git push`.
 - If review gates apply, use the repo's required review workflow before calling the work done.
-- If execution reveals a separate PR-sized stream or routing change, stop and hand off through the routing, worktree, or `multi-agent` flow instead of continuing on stale assumptions.
+- If execution reveals a needed helper round or isolated workspace, stop and hand off through the appropriate flow instead of continuing on stale assumptions.
 
 ## Red flags
 

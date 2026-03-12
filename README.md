@@ -4,7 +4,7 @@ This repository hosts reusable agent skills for Codex workflows.
 
 ## Available skills
 
-- `multi-agent` - brokered two-state execution for one task or one PR-sized change stream, with schema-validated worker contracts and ownership locks (`multi-agent/SKILL.md`).
+- `sidecars` - helper-agent fan-out guidance for one task, with a main-thread-first model and read-only `scout`/`skeptic` helpers (`sidecars/SKILL.md`).
 - `dep-roll` - latest-compatible dependency-graph upgrade workflow for pnpm, Poetry, and Cargo, with X.Y manifest-range discipline, tooling-owned lock regeneration, verification, and trailing Dependabot reconciliation (`dep-roll/SKILL.md`).
 - `python-policy` - Python policy for runtime boundaries and project-configured quality gates, deferring to checked-in bootstrap and allowing documented isolated runtimes when required (`python-policy/SKILL.md`).
 - `research` - research/investigation workflow that reads existing materials, clarifies unknowns with the user, and makes evidence-backed recommendations with websearch (`research/SKILL.md`).
@@ -36,4 +36,4 @@ To add or update a skill:
 - Routing/push policy (if any) should live in your Codex home configuration (outside this repo).
 - `<skill-name>/SKILL.md` - required skill definition.
 - `<skill-name>/...` - installable runtime assets referenced by `SKILL.md` (scripts, templates, schemas, references).
-- `dev/<skill-name>/...` - repo-local smoke/e2e/backtests for maintainers; these are validation helpers, not part of the installed skill contract.
+- `dev/<skill-name>/...` - repo-local smoke tests and maintainer validation helpers; these are not part of the installed skill contract.
