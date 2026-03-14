@@ -16,7 +16,7 @@ The smoke validates:
 
 - happy-path producer/consumer flow from `delivery-prepare/scripts/build_delivery_contract.py`
   into `delivery-closeout/scripts/read_delivery_contract.py`
+- untracked or GitHub-only ref sets read successfully without inventing Linear authority
 - typed GitHub mirror refs work without any Git remote lookup
 - string refs such as `#123` are rejected
-- GitHub-only ref sets, multiple authority refs, invalid JSON, wrong schema, and empty
-  refs all stop before sync
+- related-only Linear refs, multiple authority refs, invalid JSON, and wrong schema still stop before sync

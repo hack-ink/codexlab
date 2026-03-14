@@ -32,7 +32,9 @@ and GitHub.
 - Do not widen this skill into GitHub Projects, milestones, label governance, or PR lifecycle changes.
 - If the current branch has no upstream, or `HEAD` does not equal `@{u}`, block sync. Use the pushed branch tip as the anchor, not an unpushed local commit.
 - If `scripts/read_delivery_contract.py` reports invalid `delivery/1`, stop before any tracker mutation.
-- The contract must contain exactly one Linear authority ref. GitHub-only ref sets are invalid because GitHub mirrors Linear rather than defining workflow state.
+- The contract may omit Linear refs entirely for untracked work.
+- Linear related refs without a Linear authority ref are invalid and must block closeout.
+- If the contract declares no Linear refs at all, treat the delivery as untracked: do not mutate Linear or GitHub, and emit skipped tracker rows.
 - Apply Linear mutations before GitHub mutations.
 - If Linear mutation fails, stop and report `blocked`. Do not continue to GitHub.
 - If GitHub write fails after Linear succeeded, report `warned`. Do not roll back Linear.
@@ -63,10 +65,11 @@ and GitHub.
      - `authority == linear`
      - `delivery_mode` is explicit
      - `refs` are typed objects
-     - exactly one Linear authority ref exists
+     - at most one Linear authority ref exists
+     - any Linear related refs require that authority ref
    - Treat any validation error as a sync blocker.
 3. Build the sync set.
-   - Extract the single authoritative Linear issue from `authority_ref`.
+   - Extract the authoritative Linear issue from `authority_ref` when it exists.
    - Extract any additional Linear refs from `related_linear_refs`.
    - Extract GitHub mirror targets from `github_mirror_refs`.
    - Keep one report row per typed ref.
@@ -80,6 +83,9 @@ and GitHub.
    - Prefer native Linear MCP for normal issue reads and writes. Fall back only if MCP lacks the required surface.
 5. Decide the authoritative Linear outcome.
    - Use `delivery_mode` from the contract:
+     - no authority ref:
+       - Leave Linear and GitHub unchanged in v1.
+       - Emit skipped tracker rows only when the contract declares no Linear refs at all.
      - `closeout`:
        - Move linked internal Linear issues to the team's completed state.
        - If there is exactly one completed state, use it.
@@ -94,7 +100,9 @@ and GitHub.
        - If neither exists, block as ambiguous.
 6. Apply Linear mutations first.
    - Record the resulting Linear state for each internal issue.
+   - If no authority ref was declared, skip this step.
 7. Mirror the authoritative Linear outcome to GitHub.
+   - Only mirror GitHub refs when an authority Linear ref exists.
    - Always write a status comment that includes:
      - linked Linear issue id
      - resulting Linear state
@@ -125,7 +133,7 @@ Anchor
 
 Refs
 - contract: `python3 "$DELIVERY_CLOSEOUT_HOME/scripts/read_delivery_contract.py"` (exit: <code>)
-- authority: <linear issue id>
+- authority: <linear issue id | none>
 - related linear refs: <count>
 - GitHub mirrors: <count>
 

@@ -126,10 +126,9 @@ def main() -> None:
 	refs = obj.get("refs")
 	if not isinstance(refs, list):
 		fail("refs must be an array")
-	if not refs:
-		fail("refs must be a non-empty array")
 
 	authority_count = 0
+	related_count = 0
 	seen_refs: dict[tuple[object, ...], dict[str, Any]] = {}
 	for index, ref in enumerate(refs):
 		validated_ref = validate_ref(ref, index)
@@ -142,9 +141,13 @@ def main() -> None:
 		seen_refs[key] = validated_ref
 		if validated_ref["system"] == "linear" and validated_ref["role"] == "authority":
 			authority_count += 1
+		if validated_ref["system"] == "linear" and validated_ref["role"] == "related":
+			related_count += 1
 
-	if authority_count != 1:
-		fail("refs must contain exactly one Linear authority ref")
+	if authority_count > 1:
+		fail("refs may contain at most one Linear authority ref")
+	if authority_count == 0 and related_count > 0:
+		fail("linear related refs require a Linear authority ref")
 
 	print("OK")
 

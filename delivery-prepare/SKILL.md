@@ -48,15 +48,17 @@ Minimum type/shape constraints:
 - `breaking`: boolean
 - `authority`: exactly `linear`
 - `delivery_mode`: one of `closeout`, `status-only`, `reopen`
-- `refs`: non-empty array of typed objects
+- `refs`: array of typed objects
 - `risk`: one of `low`, `medium`, `high`
 
 Delivery contract:
 
 - `delivery-closeout` consumes the latest pushed `delivery/1` contract exactly as produced here.
-- There must be exactly one Linear authority ref: `{ "system": "linear", "id": "TEAM-123", "role": "authority" }`
-- Additional internal refs must be Linear related refs: `{ "system": "linear", "id": "TEAM-456", "role": "related" }`
+- If the change is tracked in Linear, declare at most one Linear authority ref: `{ "system": "linear", "id": "TEAM-123", "role": "authority" }`
+- Additional internal refs may be Linear related refs: `{ "system": "linear", "id": "TEAM-456", "role": "related" }`
+  but only when a Linear authority ref is also present.
 - GitHub mirror targets must be explicit typed refs: `{ "system": "github", "repo": "owner/repo", "number": 123, "role": "mirror" }`
+- If the change is not tracked in Linear or GitHub, `refs` may be empty.
 - Exact duplicate refs are canonicalized by target identity and later repeats are skipped. Conflicting duplicates for the same target are invalid and must fail validation.
 - Same-repo shorthand such as `#123`, branch-name inference, PR-title inference, and repo-origin inference are not part of the canonical contract.
 
@@ -64,7 +66,7 @@ Recommended contract generator (prints a single-line JSON message):
 
 - Skill scripts live under this skill's directory (the folder containing this `SKILL.md`).
 - Locate that directory via the runtime's skills list and set `DELIVERY_PREPARE_HOME` to it before running these commands.
-- `python3 "$DELIVERY_PREPARE_HOME/scripts/build_delivery_contract.py" --type <type> --scope <scope> --summary <summary> --intent <intent> --impact <impact> --risk <low|medium|high> --delivery-mode <closeout|status-only|reopen> --authority-linear-ref <TEAM-123> [--linear-ref <TEAM-456>] [--github-ref <owner/repo#123>]`
+- `python3 "$DELIVERY_PREPARE_HOME/scripts/build_delivery_contract.py" --type <type> --scope <scope> --summary <summary> --intent <intent> --impact <impact> --risk <low|medium|high> --delivery-mode <closeout|status-only|reopen> [--authority-linear-ref <TEAM-123> [--linear-ref <TEAM-456>]] [--github-ref <owner/repo#123>]`
 
 Local validation (required; record exit code in the report):
 
@@ -93,11 +95,12 @@ Fallback validation (use only if the script is unavailable; record exit code in 
   assert payload["risk"] in ("low", "medium", "high")
   assert all(isinstance(payload[key], str) and payload[key].strip() for key in ("type", "scope", "summary", "intent", "impact"))
   refs = payload["refs"]
-  assert isinstance(refs, list) and refs
+  assert isinstance(refs, list)
   linear_re = re.compile(r"^[A-Z][A-Z0-9]*-\d+$")
   github_re = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
   seen = {}
   authority_count = 0
+  related_count = 0
   for ref in refs:
       assert isinstance(ref, dict), "invalid ref object"
       if ref.get("system") == "linear":
@@ -120,7 +123,10 @@ Fallback validation (use only if the script is unavailable; record exit code in 
       seen[key] = ref
       if ref["system"] == "linear" and ref["role"] == "authority":
           authority_count += 1
-  assert authority_count == 1
+      if ref["system"] == "linear" and ref["role"] == "related":
+          related_count += 1
+  assert authority_count <= 1
+  assert authority_count > 0 or related_count == 0
   '
   ```
 

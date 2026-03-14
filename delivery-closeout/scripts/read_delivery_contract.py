@@ -193,10 +193,9 @@ def load_contract(raw_text: str) -> tuple[dict[str, Any] | None, list[str]]:
     refs = payload.get("refs")
     if not isinstance(refs, list):
         errors.append("delivery/1 refs must be an array")
-    elif not refs:
-        errors.append("delivery/1 refs array is empty")
     else:
         authority_count = 0
+        related_count = 0
         unique_refs: list[dict[str, Any]] = []
         duplicates: list[dict[str, Any]] = []
         seen_refs: dict[tuple[object, ...], dict[str, Any]] = {}
@@ -218,8 +217,12 @@ def load_contract(raw_text: str) -> tuple[dict[str, Any] | None, list[str]]:
             unique_refs.append(validated_ref)
             if validated_ref["system"] == "linear" and validated_ref["role"] == "authority":
                 authority_count += 1
-        if authority_count != 1:
-            errors.append("delivery/1 refs must contain exactly one Linear authority ref")
+            if validated_ref["system"] == "linear" and validated_ref["role"] == "related":
+                related_count += 1
+        if authority_count > 1:
+            errors.append("delivery/1 refs may contain at most one Linear authority ref")
+        if authority_count == 0 and related_count > 0:
+            errors.append("delivery/1 linear related refs require a Linear authority ref")
         payload["refs"] = unique_refs
         payload["_duplicates"] = duplicates
 
@@ -267,9 +270,12 @@ def build_result(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
 
     refs = payload["refs"]
     authority_ref = next(
-        ref
-        for ref in refs
-        if ref["system"] == "linear" and ref["role"] == "authority"
+        (
+            ref
+            for ref in refs
+            if ref["system"] == "linear" and ref["role"] == "authority"
+        ),
+        None,
     )
     result["authority_ref"] = authority_ref
     result["related_linear_refs"] = [

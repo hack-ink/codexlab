@@ -32,11 +32,12 @@ assert isinstance(payload["breaking"], bool)
 assert payload["risk"] in ("low", "medium", "high")
 assert all(isinstance(payload[key], str) and payload[key].strip() for key in ("type", "scope", "summary", "intent", "impact"))
 refs = payload["refs"]
-assert isinstance(refs, list) and refs
+assert isinstance(refs, list)
 linear_re = re.compile(r"^[A-Z][A-Z0-9]*-\\d+$")
 github_re = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 seen = {}
 authority_count = 0
+related_count = 0
 for ref in refs:
     assert isinstance(ref, dict), "invalid ref object"
     if ref.get("system") == "linear":
@@ -59,7 +60,10 @@ for ref in refs:
     seen[key] = ref
     if ref["system"] == "linear" and ref["role"] == "authority":
         authority_count += 1
-assert authority_count == 1
+    if ref["system"] == "linear" and ref["role"] == "related":
+        related_count += 1
+assert authority_count <= 1
+assert authority_count > 0 or related_count == 0
 """.strip()
 FALLBACK_VALIDATOR = [
     "python3",
@@ -122,7 +126,7 @@ def build_invalid_contract(*, refs: object, **overrides: object) -> str:
 
 
 def main() -> None:
-    missing_authority = run(
+    untracked_contract = run(
         [
             "python3",
             str(GENERATOR),
@@ -131,29 +135,61 @@ def main() -> None:
             "--scope",
             "delivery-prepare-smoke",
             "--summary",
-            "missing authority ref",
+            "untracked delivery contract",
             "--intent",
             "smoke test",
             "--impact",
-            "validate required authority ref",
+            "allow empty refs without tracker linkage",
             "--risk",
             "low",
             "--delivery-mode",
             "closeout",
         ],
         cwd=REPO_ROOT,
+    )
+    untracked_payload = json.loads(untracked_contract.stdout)
+    assert_equal(
+        untracked_payload["refs"],
+        [],
+        "generator should allow untracked contracts with empty refs",
+    )
+    print("OK: generator allows untracked delivery contracts with empty refs")
+
+    related_without_authority = run(
+        [
+            "python3",
+            str(GENERATOR),
+            "--type",
+            "chore",
+            "--scope",
+            "delivery-prepare-smoke",
+            "--summary",
+            "related without authority",
+            "--intent",
+            "smoke test",
+            "--impact",
+            "reject related-only Linear refs",
+            "--risk",
+            "low",
+            "--delivery-mode",
+            "closeout",
+            "--linear-ref",
+            "PUB-600",
+        ],
+        cwd=REPO_ROOT,
         check=False,
     )
     assert_equal(
-        missing_authority.returncode,
+        related_without_authority.returncode,
         2,
-        "generator should reject missing authority linear ref",
+        "generator should reject related-only Linear refs",
     )
     assert_true(
-        "--authority-linear-ref" in missing_authority.stderr,
-        "generator error should mention --authority-linear-ref",
+        "linear related refs require --authority-linear-ref"
+        in related_without_authority.stderr,
+        "generator error should mention missing authority for related refs",
     )
-    print("OK: generator rejects missing authority linear ref")
+    print("OK: generator rejects related-only Linear refs")
 
     missing_mode = run(
         [
@@ -381,12 +417,29 @@ def main() -> None:
     )
     print("OK: validator rejects invalid delivery mode")
 
-    zero_authority = run(
+    empty_refs_validation = run(
+        ["python3", str(VALIDATOR)],
+        cwd=REPO_ROOT,
+        input_text=build_invalid_contract(refs=[]),
+        check=False,
+    )
+    assert_equal(
+        empty_refs_validation.returncode,
+        0,
+        "validator should allow empty refs for untracked work",
+    )
+    assert_equal(
+        empty_refs_validation.stdout.strip(),
+        "OK",
+        "validator success output for empty refs",
+    )
+    print("OK: validator accepts empty refs")
+
+    github_only_validation = run(
         ["python3", str(VALIDATOR)],
         cwd=REPO_ROOT,
         input_text=build_invalid_contract(
             refs=[
-                {"system": "linear", "id": "PUB-600", "role": "related"},
                 {
                     "system": "github",
                     "repo": "hack-ink/ELF",
@@ -398,15 +451,36 @@ def main() -> None:
         check=False,
     )
     assert_equal(
-        zero_authority.returncode,
+        github_only_validation.returncode,
+        0,
+        "validator should allow GitHub-only refs without Linear authority",
+    )
+    assert_equal(
+        github_only_validation.stdout.strip(),
+        "OK",
+        "validator success output for GitHub-only refs",
+    )
+    print("OK: validator accepts GitHub-only refs")
+
+    related_without_authority_validation = run(
+        ["python3", str(VALIDATOR)],
+        cwd=REPO_ROOT,
+        input_text=build_invalid_contract(
+            refs=[{"system": "linear", "id": "PUB-600", "role": "related"}]
+        ),
+        check=False,
+    )
+    assert_equal(
+        related_without_authority_validation.returncode,
         2,
-        "validator should reject missing authority ref",
+        "validator should reject related-only Linear refs",
     )
     assert_true(
-        "refs must contain exactly one Linear authority ref" in zero_authority.stderr,
-        "validator error should mention missing authority ref",
+        "linear related refs require a Linear authority ref"
+        in related_without_authority_validation.stderr,
+        "validator error should mention missing authority for related refs",
     )
-    print("OK: validator rejects zero authority refs")
+    print("OK: validator rejects related-only Linear refs")
 
     multiple_authority = run(
         ["python3", str(VALIDATOR)],
@@ -425,7 +499,7 @@ def main() -> None:
         "validator should reject multiple authority refs",
     )
     assert_true(
-        "refs must contain exactly one Linear authority ref"
+        "refs may contain at most one Linear authority ref"
         in multiple_authority.stderr,
         "validator error should mention multiple authority refs",
     )
@@ -602,6 +676,34 @@ def main() -> None:
         "fallback validator should accept exact duplicate refs",
     )
     print("OK: fallback validator accepts exact duplicate refs")
+
+    fallback_empty_refs = run(
+        FALLBACK_VALIDATOR,
+        cwd=REPO_ROOT,
+        input_text=build_invalid_contract(refs=[]),
+        check=False,
+    )
+    assert_equal(
+        fallback_empty_refs.returncode,
+        0,
+        "fallback validator should accept empty refs",
+    )
+    print("OK: fallback validator accepts empty refs")
+
+    fallback_related_without_authority = run(
+        FALLBACK_VALIDATOR,
+        cwd=REPO_ROOT,
+        input_text=build_invalid_contract(
+            refs=[{"system": "linear", "id": "PUB-600", "role": "related"}]
+        ),
+        check=False,
+    )
+    assert_equal(
+        fallback_related_without_authority.returncode,
+        1,
+        "fallback validator should reject related-only Linear refs",
+    )
+    print("OK: fallback validator rejects related-only Linear refs")
 
     valid_validation = run(
         ["python3", str(VALIDATOR)],

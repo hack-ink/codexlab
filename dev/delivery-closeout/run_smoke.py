@@ -149,6 +149,20 @@ def main() -> None:
         assert_equal(ok_payload["duplicates"], [], "reader should not report duplicates")
         print("OK: generator output flows directly into reader without repo inference")
 
+        untracked_proc = run(
+            ["python3", str(READER), "--stdin"],
+            cwd=REPO_ROOT,
+            input_text=build_contract(refs=[]),
+        )
+        untracked_payload = json.loads(untracked_proc.stdout)
+        assert_true(
+            untracked_payload["ok"],
+            "empty refs should read successfully for untracked delivery",
+        )
+        assert_equal(untracked_payload["authority_ref"], None, "reader authority ref for untracked delivery")
+        assert_equal(untracked_payload["refs"], [], "reader refs for untracked delivery")
+        print("OK: reader accepts untracked delivery contracts with empty refs")
+
         duplicate_reader_proc = run(
             ["python3", str(READER), "--stdin"],
             cwd=REPO_ROOT,
@@ -298,20 +312,49 @@ def main() -> None:
                     }
                 ]
             ),
+        )
+        github_only_payload = json.loads(github_only_proc.stdout)
+        assert_equal(
+            github_only_payload["authority_ref"],
+            None,
+            "GitHub-only refs should not invent a Linear authority",
+        )
+        assert_equal(
+            github_only_payload["github_mirror_refs"],
+            [
+                {
+                    "system": "github",
+                    "repo": "hack-ink/ELF",
+                    "number": 30,
+                    "role": "mirror",
+                }
+            ],
+            "reader GitHub-only mirrors",
+        )
+        print("OK: reader accepts GitHub-only ref sets without Linear authority")
+
+        related_without_authority_proc = run(
+            ["python3", str(READER), "--stdin"],
+            cwd=REPO_ROOT,
+            input_text=build_contract(
+                refs=[{"system": "linear", "id": "PUB-600", "role": "related"}]
+            ),
             check=False,
         )
         assert_equal(
-            github_only_proc.returncode,
+            related_without_authority_proc.returncode,
             2,
-            "GitHub-only ref sets should fail",
+            "related-only Linear refs should fail",
         )
-        github_only_payload = json.loads(github_only_proc.stdout)
+        related_without_authority_payload = json.loads(
+            related_without_authority_proc.stdout
+        )
         assert_true(
-            "delivery/1 refs must contain exactly one Linear authority ref"
-            in github_only_payload["errors"],
-            "reader should require a Linear authority ref",
+            "delivery/1 linear related refs require a Linear authority ref"
+            in related_without_authority_payload["errors"],
+            "reader should reject related-only Linear refs",
         )
-        print("OK: GitHub-only ref sets block without Linear authority")
+        print("OK: reader rejects related-only Linear refs")
 
         multiple_authority_proc = run(
             ["python3", str(READER), "--stdin"],
@@ -331,7 +374,7 @@ def main() -> None:
         )
         multiple_authority_payload = json.loads(multiple_authority_proc.stdout)
         assert_true(
-            "delivery/1 refs must contain exactly one Linear authority ref"
+            "delivery/1 refs may contain at most one Linear authority ref"
             in multiple_authority_payload["errors"],
             "reader should reject multiple authority refs",
         )
@@ -418,20 +461,6 @@ def main() -> None:
             "wrong schema failure reason",
         )
         print("OK: wrong schema blocks the reader")
-
-        empty_refs_proc = run(
-            ["python3", str(READER), "--stdin"],
-            cwd=REPO_ROOT,
-            input_text=build_contract(refs=[]),
-            check=False,
-        )
-        assert_equal(empty_refs_proc.returncode, 2, "empty refs should fail")
-        empty_refs_payload = json.loads(empty_refs_proc.stdout)
-        assert_true(
-            "delivery/1 refs array is empty" in empty_refs_payload["errors"],
-            "empty refs failure reason",
-        )
-        print("OK: empty refs block the reader")
 
         invalid_rev_proc = run(
             ["python3", str(READER), "--repo", str(repo_ok), "--rev", "does-not-exist"],

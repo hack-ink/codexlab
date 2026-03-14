@@ -50,7 +50,6 @@ def parse_args() -> argparse.Namespace:
 	)
 	parser.add_argument(
 		"--authority-linear-ref",
-		required=True,
 		type=parse_linear_ref,
 	)
 	parser.add_argument(
@@ -98,17 +97,20 @@ def append_ref(
 
 def main() -> None:
 	args = parse_args()
+	if args.authority_linear_ref is None and args.linear_ref:
+		fail("linear related refs require --authority-linear-ref")
 	refs: list[dict[str, Any]] = []
 	seen: dict[tuple[object, ...], dict[str, Any]] = {}
-	append_ref(
-		refs,
-		seen,
-		{
-			"system": "linear",
-			"id": args.authority_linear_ref,
-			"role": "authority",
-		},
-	)
+	if args.authority_linear_ref is not None:
+		append_ref(
+			refs,
+			seen,
+			{
+				"system": "linear",
+				"id": args.authority_linear_ref,
+				"role": "authority",
+			},
+		)
 	for linear_ref in args.linear_ref:
 		append_ref(
 			refs,
