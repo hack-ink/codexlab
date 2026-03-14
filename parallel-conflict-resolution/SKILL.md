@@ -1,6 +1,6 @@
 ---
 name: parallel-conflict-resolution
-description: Use when reconciling merge, rebase, or cherry-pick conflicts across parallel worktrees or independent branches. Covers conflict triage, preserving uncommitted work, choosing a reconciliation strategy, and verification before closeout.
+description: Use when reconciling merge, rebase, or cherry-pick conflicts across parallel implementation lanes. Covers conflict triage, preserving uncommitted work, choosing a reconciliation strategy, and verification before closeout.
 ---
 
 # Parallel Conflict Resolution
@@ -13,7 +13,7 @@ Typical triggers:
 
 - A merge or rebase stops with conflicts
 - A cherry-pick only partially applies
-- Two worktrees or branches evolved the same files differently
+- Two parallel lanes evolved the same files differently
 - Parallel task lanes need to be reconciled or re-split before review
 
 ## Core rule
@@ -66,7 +66,7 @@ git log --oneline --left-right --cherry <upstream>...HEAD
 
 - If the tree contains manual resolution progress you may need later, copy the conflicted files or create a patch before aborting.
 - If unrelated local edits exist, stash or move them out of the way before retrying.
-- Do not run `git reset --hard` or delete a worktree to "start fresh" unless the user explicitly approved that loss.
+- Do not run `git reset --hard` or delete a lane checkout to "start fresh" unless the user explicitly approved that loss.
 
 Use official abort/quit flows when backing out of an in-progress operation:
 

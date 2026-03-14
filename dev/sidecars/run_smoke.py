@@ -6,7 +6,7 @@ from pathlib import Path
 DEV_DIR = Path(__file__).resolve().parent
 REPO_ROOT = DEV_DIR.parents[1]
 COUPLED_SKILL_NEEDLES = [
-    "`git-worktrees`",
+    "`git-workspaces`",
     "`plan-writing`",
     "`plan-execution`",
     "`delivery-prepare`",

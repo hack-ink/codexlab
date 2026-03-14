@@ -73,7 +73,7 @@ Examples:
 - "Write the implementation plan" or a task already running in Plan mode -> load the planning workflow before any code changes.
 - "Execute this plan" or "continue from `docs/plans/...`" -> load the workflow that treats the saved plan as the execution entrypoint.
 - "Build a React dashboard" -> load the smallest set of process and implementation skills that match the task.
-- "This merge/rebase/cherry-pick conflict came from parallel branches or worktrees" -> load the workflow that resolves cross-branch conflicts.
+- "This merge/rebase/cherry-pick conflict came from parallel implementation lanes" -> load the workflow that resolves lane reconciliation conflicts.
 - "Prepare a commit" -> load the commit/push gate before committing or pushing.
 
 ## Follow-through
