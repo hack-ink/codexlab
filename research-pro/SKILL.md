@@ -19,10 +19,10 @@ Get decision-grade research and architecture recommendations from ChatGPT Pro, t
 
 ## Browser transport
 
-- Treat plain `agent-browser` and `scripts/agent-browser-node.sh` as command-compatible entrypoints.
-- Use plain `agent-browser` only when it is already known-good on the current host.
-- Do **not** add `--native` as a generic fix. `--native` only changes daemon mode; it does not guarantee a different global entrypoint, and a running daemon can ignore it.
-- For long-lived Project flows, flaky native hosts, or any run where you need deterministic Node/Playwright behavior, prefer `scripts/agent-browser-node.sh`.
+- `agent-browser` is the canonical browser entrypoint for this skill.
+- Prefer the current host's supported `agent-browser` entrypoint for the entire run.
+- This source repo does not ship alternate Node or Playwright wrapper scripts for `research-pro`; do not add ad-hoc wrapper paths to this workflow.
+- If `agent-browser` itself is unhealthy before page interaction starts, treat that as a local runtime failure to repair or surface, not a reason to fork the automation stack mid-run.
 
 ## Hard gates
 
@@ -39,8 +39,8 @@ Get decision-grade research and architecture recommendations from ChatGPT Pro, t
     - First, attach to the existing browser session and recover the URL via `agent-browser --session research-pro --session-name research-pro get url`.
      - If the URL already contains `/c/`, treat it as the canonical `conversation_url` and resume polling; do not start a new chat.
      - Only start a new chat after you have evidence the existing conversation cannot be recovered or is explicitly aborted.
-   - If `agent-browser` itself is unhealthy before page interaction starts (for example trivial local commands like `--help`, `session list`, `get url`, or a minimal `open` hang/fail), treat that as a client/daemon transport failure, not as a ChatGPT page problem.
-   - In that case, fall back to direct Playwright control using the same `research-pro` Chrome profile directory and keep that browser context alive for the rest of the run. Reuse any existing Project or conversation you already created; do not restart from scratch unless the session is unrecoverable.
+   - If `agent-browser` itself is unhealthy before page interaction starts (for example trivial local commands like `--help`, `session list`, `get url`, or a minimal `open` hang/fail), treat that as a local transport/runtime failure, not as a ChatGPT page problem.
+   - Capture the failing command plus stderr/stdout, then repair or reinstall `agent-browser` if the current task allows it; otherwise stop with `status=needs-user-action`. Do not switch to another automation stack mid-run.
    - Active-generation controls are authoritative. Do not treat partial output, a visible `Copy` button, or the absence of progress text as completion while `Stop streaming`, `Continue generating`, `Update`, or equivalent active-generation controls remain.
    - Exact reattach rule: if the canonical `conversation_url` still resolves to a live `/c/` thread and `snapshot -i -C` shows that a Pro model is selected, `Extended` thinking is active, and a live `Stop streaming` control is present, the consultation is definitively `in_progress`, not complete, even if a `Copy` button and partial assistant text are visible.
 2. Treat secrets and private data as sensitive: do not paste tokens, credentials, internal-only identifiers, customer data, or private URLs.
@@ -50,10 +50,10 @@ Get decision-grade research and architecture recommendations from ChatGPT Pro, t
 
 4. Always use `chatgpt.com` Projects; do not run the consultation outside a Project.
 5. Use headed browser automation for ChatGPT (`--headed --args "--disable-blink-features=AutomationControlled"`), with an isolated daemon session via `--session research-pro`, persisted browser state via `--session-name research-pro`, and a dedicated profile path via `--profile ~/.agent-browser/profiles/research-pro` (absolute path preferred).
+   - Keep one `agent-browser` transport for the whole run on the current host: launch, polling, and extraction should all use the same resolved entrypoint.
    - `--session research-pro` isolates the live daemon/browser session. `--session-name research-pro` only names the saved browser state; it is not a substitute for session isolation.
    - Avoid relative profile paths: they change with `cwd` and can load the wrong persisted login state.
    - Keep session/profile identifiers aligned to the skill name (`research-pro`) for recognizability.
-   - `scripts/agent-browser-node.sh` is the supported drop-in fallback when you need to force the JS wrapper / Node daemon / Playwright path.
 6. Use project name format `org/project` unless the user explicitly overrides this rule.
 7. Derive project name in this order:
    - explicit user value (validate format),
@@ -94,11 +94,10 @@ Ask Pro to follow this workflow and to be explicit about evidence:
 
 1. Open ChatGPT in headed mode and verify login.
    - Recommended invocation: `agent-browser --headed --args "--disable-blink-features=AutomationControlled" --session research-pro --session-name research-pro --profile ~/.agent-browser/profiles/research-pro open https://chatgpt.com`
-   - Stable Node/Playwright fallback: `scripts/agent-browser-node.sh --headed --args "--disable-blink-features=AutomationControlled" --session research-pro --session-name research-pro --profile ~/.agent-browser/profiles/research-pro open https://chatgpt.com`
    - Use a dedicated absolute profile directory plus both `--session research-pro` and `--session-name research-pro`; relative profile paths vary by `cwd` and can reuse the wrong browser state.
    - If the CLI reports `--args ignored: daemon already running`, the existing browser daemon is being reused; run `agent-browser --session research-pro close` first when you need a fresh launch with new args.
    - During reattach/polling, do not treat a busy-daemon or similar transient CLI warning as completion. Reuse the existing session, recover `conversation_url`, and continue polling the same thread.
-   - If the plain `agent-browser` client/daemon path is the thing that is broken, switch to `scripts/agent-browser-node.sh` with the same args and profile before dropping all the way to custom Playwright automation.
+   - If the local `agent-browser` install is the thing that is broken, stop and capture the failure. Repair that current-host entrypoint before retrying instead of swapping transports mid-run.
 2. If login is required, pause for manual login/MFA and continue after success.
 
 ### C) Open or create the target Project (with correct memory at creation)
@@ -138,7 +137,6 @@ Ask Pro to follow this workflow and to be explicit about evidence:
 1. Submit the prompt.
 2. Immediately capture and persist `conversation_url` (single-flight lock):
    - Run `agent-browser --session research-pro --session-name research-pro get url` and treat that as the canonical `conversation_url`.
-   - If the run is using Playwright fallback instead of `agent-browser`, capture the live page URL directly from that browser context and treat it as the canonical `conversation_url`.
    - If navigation breaks or UI drifts, reopen `conversation_url` instead of starting a new chat.
 3. Poll every 180 seconds until completion:
    - There is no fixed polling budget or max cycle count. The same turn keeps polling until the completion gate passes, the run is explicitly aborted, or a real `needs-user-action` blocker is reached.

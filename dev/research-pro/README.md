@@ -2,7 +2,7 @@
 
 This directory contains development-only validation for the `research-pro` skill.
 It stays outside the installable skill directory so installations keep only the
-runtime browser wrapper and skill instructions.
+skill instructions.
 
 ## Quick smoke
 
@@ -12,9 +12,20 @@ From the repo root:
 python3 dev/research-pro/run_smoke.py
 ```
 
-This smoke entrypoint validates the `agent-browser-node.sh` wrapper without
-opening a browser session:
+Optional host probe:
 
-- no-args usage exits with the documented code and usage text
-- `AGENT_BROWSER_JS_PATH` passthrough executes a temporary JS wrapper under Node
-- wrapper arguments are forwarded unchanged to the JS entrypoint
+```sh
+python3 dev/research-pro/run_smoke.py --check-host-cli
+```
+
+By default, this smoke validates the source-repo `research-pro` contract
+without depending on a local browser install:
+
+- legacy Node/Playwright wrapper references stay out of `research-pro/SKILL.md`
+- the obsolete `research-pro/scripts/agent-browser-node.sh` artifact stays removed
+
+With `--check-host-cli`, it also validates the current host's `agent-browser`
+entrypoint:
+
+- the local `agent-browser` CLI is present in `PATH`
+- the local CLI exposes the flags that `research-pro` depends on
