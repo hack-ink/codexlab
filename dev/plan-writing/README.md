@@ -14,7 +14,7 @@ python3 dev/plan-writing/run_smoke.py
 
 The smoke validates:
 
-- `format_plan_contract.py` canonicalizes raw `plan/1` JSON into the fenced markdown form
+- `format_plan_contract.py` canonicalizes raw `plan/1` JSON into the saved JSON form
 - `validate_plan_contract.py` accepts valid persisted `plan/1` contracts
 - duplicate task ids, bad dependencies, and multiple active tasks fail deterministically
-- optional trailing markdown context survives normalization without affecting validation
+- markdown-wrapped inputs are rejected so saved artifacts stay raw JSON only

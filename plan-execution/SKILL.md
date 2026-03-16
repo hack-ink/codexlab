@@ -8,14 +8,14 @@ description: Use when the user wants to execute an existing implementation plan,
 ## Scope
 
 - This skill is the consumer stage of the shared `plan/1` contract.
-- It consumes a saved file under `docs/plans/YYYY-MM-DD_<feature-name>.md`.
+- It consumes a saved file under `docs/plans/YYYY-MM-DD_<feature-name>.json`.
 - It owns only runtime state transitions.
 - It must not repair or rewrite strategy itself.
 
 Typical triggers:
 
 - The user says "execute this plan" or links a plan doc
-- Work should continue from `docs/plans/YYYY-MM-DD_<feature-name>.md`
+- Work should continue from `docs/plans/YYYY-MM-DD_<feature-name>.json`
 - A separate session is asked to implement a saved plan
 - A previously blocked contract now needs to resume from saved state
 
@@ -23,7 +23,7 @@ Typical triggers:
 
 - Do not infer execution authority from chat, branch names, or earlier conversational plans.
 - If there is no saved file, stop and route back to `plan-writing`.
-- If the saved file does not start with a valid fenced `plan/1` block, stop and report the migration error.
+- If the saved file is not raw `plan/1` JSON, stop and report the migration error.
 - If the contract is contradictory, stale, or invalid, stop and route back to `plan-writing`.
 - Before any commit or push, follow the local commit/push gate.
 
@@ -73,8 +73,7 @@ If execution needs a strategy change, stop after recording the blocker or replan
 ## Blocking rules
 
 - No saved file: block and route to `plan-writing`.
-- Saved file with no fenced `plan/1` block: block with an explicit migration error.
-- Legacy prose-only plan: block with an explicit migration error.
+- Saved file that is not raw `plan/1` JSON: block with an explicit migration error.
 - Contradictory ids, invalid phase/task combinations, or other schema failures: block and route to `plan-writing`.
 - “Use the plan we just discussed” with no materialized saved file: block and route to `plan-writing`.
 
@@ -83,7 +82,7 @@ If execution needs a strategy change, stop after recording the blocker or replan
 Set the skill root from the runtime skill list before running the reader:
 
 - `PLAN_EXECUTION_HOME=<skill root containing this SKILL.md>`
-- `python3 "$PLAN_EXECUTION_HOME/scripts/read_plan_contract.py" --path docs/plans/YYYY-MM-DD_<feature-name>.md`
+- `python3 "$PLAN_EXECUTION_HOME/scripts/read_plan_contract.py" --path docs/plans/YYYY-MM-DD_<feature-name>.json`
 
 The reader validates the saved file, normalizes the contract, and returns machine-readable metadata plus the normalized contract payload.
 

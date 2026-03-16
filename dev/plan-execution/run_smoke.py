@@ -110,7 +110,7 @@ def write_plan(path: Path, contract: dict[str, object], *, tail: str = "") -> No
 def write_invalid_plan(path: Path, contract: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     body = json.dumps(contract, indent=2, ensure_ascii=True)
-    path.write_text(f"```json\n{body}\n```\n", encoding="utf-8")
+    path.write_text(f"{body}\n", encoding="utf-8")
 
 
 def main() -> None:
@@ -123,7 +123,7 @@ def main() -> None:
 
     with tempfile.TemporaryDirectory(prefix="plan-execution-smoke-") as tmp_dir:
         temp_root = Path(tmp_dir)
-        plan_path = temp_root / "docs" / "plans" / "2026-03-13_plan-execution-smoke.md"
+        plan_path = temp_root / "docs" / "plans" / "2026-03-13_plan-execution-smoke.json"
 
         contract = build_contract()
         write_plan(plan_path, contract)
@@ -219,7 +219,7 @@ def main() -> None:
         assert_true(standalone_payload["ok"], "standalone plan-execution reader should work without plan-writing")
         print("OK: plan-execution reader remains self-contained")
 
-        prose_path = temp_root / "docs" / "plans" / "2026-03-13_legacy.md"
+        prose_path = temp_root / "docs" / "plans" / "2026-03-13_legacy.json"
         prose_path.write_text("# Legacy prose plan\n\nNo plan contract lives here.\n", encoding="utf-8")
         prose_proc = run(
             ["python3", str(READER), "--path", str(prose_path)],
@@ -230,9 +230,9 @@ def main() -> None:
         assert_true(prose_payload["migration_required"], "prose-only plans should request migration")
         print("OK: prose-only plans fail with an explicit migration reason")
 
-        wrong_fence_path = temp_root / "docs" / "plans" / "2026-03-13_wrong-fence.md"
+        wrong_fence_path = temp_root / "docs" / "plans" / "2026-03-13_wrong-fence.json"
         wrong_fence_path.write_text(
-            "```text\n"
+            "```json\n"
             + json.dumps(build_contract(), indent=2)
             + "\n```\n",
             encoding="utf-8",
@@ -241,13 +241,35 @@ def main() -> None:
             ["python3", str(READER), "--path", str(wrong_fence_path)],
             check=False,
         )
-        assert_equal(wrong_fence_proc.returncode, 2, "non-json fenced plans should fail")
+        assert_equal(wrong_fence_proc.returncode, 2, "markdown-wrapped saved plans should fail")
         wrong_fence_payload = json.loads(wrong_fence_proc.stdout)
         assert_true(
-            any("```json fenced block" in error for error in wrong_fence_payload["errors"]),
-            "wrong fence failure should mention the json fence requirement",
+            wrong_fence_payload["migration_required"],
+            "markdown-wrapped saved plans should request migration",
         )
-        print("OK: non-json fenced plan files are rejected")
+        assert_true(
+            any("saved plan files must be raw JSON" in error for error in wrong_fence_payload["errors"]),
+            "wrapped-plan failure should mention the raw JSON requirement",
+        )
+        print("OK: markdown-wrapped saved plan files are rejected")
+
+        non_object_json_path = temp_root / "docs" / "plans" / "2026-03-13_non-object.json"
+        non_object_json_path.write_text("[]\n", encoding="utf-8")
+        non_object_json_proc = run(
+            ["python3", str(READER), "--path", str(non_object_json_path)],
+            check=False,
+        )
+        assert_equal(non_object_json_proc.returncode, 2, "non-object JSON saved plans should fail")
+        non_object_json_payload = json.loads(non_object_json_proc.stdout)
+        assert_true(
+            any("plan/1 must be a JSON object" in error for error in non_object_json_payload["errors"]),
+            "non-object JSON failure should surface the schema error",
+        )
+        assert_true(
+            not non_object_json_payload["migration_required"],
+            "non-object JSON should not be misclassified as a migration case",
+        )
+        print("OK: non-object JSON saved plans surface schema errors instead of migration")
 
         blocked_without_reason = build_contract()
         blocked_without_reason["spec"]["tasks"][0]["status"] = "blocked"  # type: ignore[index]
@@ -255,7 +277,7 @@ def main() -> None:
         blocked_without_reason["state"]["current_task_id"] = "task-1"  # type: ignore[index]
         blocked_without_reason["state"]["next_task_id"] = "task-2"  # type: ignore[index]
         blocked_without_reason["state"]["last_updated"] = "2026-03-13T00:25:00Z"  # type: ignore[index]
-        blocked_path = temp_root / "docs" / "plans" / "2026-03-13_blocked-no-reason.md"
+        blocked_path = temp_root / "docs" / "plans" / "2026-03-13_blocked-no-reason.json"
         write_invalid_plan(blocked_path, blocked_without_reason)
         blocked_proc = run(
             ["python3", str(READER), "--path", str(blocked_path)],
@@ -271,7 +293,7 @@ def main() -> None:
 
         non_executable_ready = build_contract()
         non_executable_ready["state"]["next_task_id"] = "task-2"  # type: ignore[index]
-        non_exec_path = temp_root / "docs" / "plans" / "2026-03-13_non-executable-ready.md"
+        non_exec_path = temp_root / "docs" / "plans" / "2026-03-13_non-executable-ready.json"
         write_invalid_plan(non_exec_path, non_executable_ready)
         non_exec_proc = run(
             ["python3", str(READER), "--path", str(non_exec_path)],
@@ -291,7 +313,7 @@ def main() -> None:
         non_executable_current["state"]["current_task_id"] = "task-2"  # type: ignore[index]
         non_executable_current["state"]["next_task_id"] = "task-1"  # type: ignore[index]
         non_executable_current["state"]["last_updated"] = "2026-03-13T00:27:00Z"  # type: ignore[index]
-        non_current_path = temp_root / "docs" / "plans" / "2026-03-13_non-executable-current.md"
+        non_current_path = temp_root / "docs" / "plans" / "2026-03-13_non-executable-current.json"
         write_invalid_plan(non_current_path, non_executable_current)
         non_current_proc = run(
             ["python3", str(READER), "--path", str(non_current_path)],
@@ -310,7 +332,7 @@ def main() -> None:
         done_with_unfinished["state"]["current_task_id"] = None  # type: ignore[index]
         done_with_unfinished["state"]["next_task_id"] = None  # type: ignore[index]
         done_with_unfinished["state"]["last_updated"] = "2026-03-13T00:30:00Z"  # type: ignore[index]
-        done_path = temp_root / "docs" / "plans" / "2026-03-13_done-invalid.md"
+        done_path = temp_root / "docs" / "plans" / "2026-03-13_done-invalid.json"
         write_invalid_plan(done_path, done_with_unfinished)
         done_proc = run(
             ["python3", str(READER), "--path", str(done_path)],

@@ -1,6 +1,6 @@
 ---
 name: plan-writing
-description: Use when the user asks for a plan, when a multi-step or risky task should be decomposed before implementation, or when the runtime is in Plan mode. Produces or revises the persisted machine-first `plan/1` contract at `docs/plans/YYYY-MM-DD_<feature-name>.md`, owning strategy, task graph, defaults, and replanning policy before implementation begins.
+description: Use when the user asks for a plan, when a multi-step or risky task should be decomposed before implementation, or when the runtime is in Plan mode. Produces or revises the persisted machine-first `plan/1` contract at `docs/plans/YYYY-MM-DD_<feature-name>.json`, owning strategy, task graph, defaults, and replanning policy before implementation begins.
 ---
 
 # Plan Writing
@@ -23,14 +23,14 @@ Typical triggers:
 
 - Stay in planning scope. Do not start implementation unless the user explicitly asks to execute now.
 - Ground the plan in current repo evidence. Read enough code, docs, and instructions to avoid placeholder guidance.
-- Persist the plan under `docs/plans/YYYY-MM-DD_<feature-name>.md`.
-- The first top-level artifact in that file must be a fenced JSON block containing the authoritative `plan/1` contract.
-- Anything below that first fenced block is optional context only. It is non-authoritative and must never override the contract.
+- Persist the plan under `docs/plans/YYYY-MM-DD_<feature-name>.json`.
+- The saved file itself is the authoritative `plan/1` JSON contract.
+- Do not wrap the contract in markdown fences or append prose to the saved artifact.
 - Do not rely on chat summaries, `<proposed_plan>` output, or prior conversational context as execution authority once the saved file exists.
 
 ## Contract shape
 
-The `plan/1` block must decode to this top-level shape:
+The saved `plan/1` JSON must decode to this top-level shape:
 
 ```json
 {
@@ -76,7 +76,7 @@ The `plan/1` block must decode to this top-level shape:
 - `spec` is stable intent. `plan-execution` must not rewrite it.
 - `state` is mutable runtime state. `plan-writing` may initialize it for a new plan or reset it after replanning.
 - For new plans:
-  - create the first fenced `plan/1` block
+  - create the saved `plan/1` JSON artifact
   - populate `spec`
   - set `state.phase = "ready"`
   - set `state.next_task_id` deterministically
@@ -104,7 +104,7 @@ The `plan/1` block must decode to this top-level shape:
 4. Choose one deterministic entrypoint task and set `state.next_task_id` to that id.
    - The entrypoint task must already be executable from the task graph, not merely pending.
 5. Initialize `state` so the contract is valid and ready for execution.
-6. Save the file with the fenced `plan/1` block first.
+6. Save the file as raw `plan/1` JSON.
 7. Normalize and validate the result before reporting it.
 
 ## Helper commands
@@ -113,20 +113,20 @@ Set the skill root from the runtime skill list before running helpers:
 
 - `PLAN_WRITING_HOME=<skill root containing this SKILL.md>`
 - Create a new saved contract from raw JSON:
-  - `printf '%s' "$PLAN_CONTRACT" | python3 "$PLAN_WRITING_HOME/scripts/format_plan_contract.py" > docs/plans/YYYY-MM-DD_<feature-name>.md`
-- Normalize a raw or existing contract into canonical fenced markdown on stdout:
-  - `python3 "$PLAN_WRITING_HOME/scripts/format_plan_contract.py" --path docs/plans/YYYY-MM-DD_<feature-name>.md`
+  - `printf '%s' "$PLAN_CONTRACT" | python3 "$PLAN_WRITING_HOME/scripts/format_plan_contract.py" > docs/plans/YYYY-MM-DD_<feature-name>.json`
+- Normalize a raw or existing contract into canonical JSON on stdout:
+  - `python3 "$PLAN_WRITING_HOME/scripts/format_plan_contract.py" --path docs/plans/YYYY-MM-DD_<feature-name>.json`
 - Overwrite an existing saved file with the normalized form:
-  - `tmpfile="$(mktemp)" && python3 "$PLAN_WRITING_HOME/scripts/format_plan_contract.py" --path docs/plans/YYYY-MM-DD_<feature-name>.md > "$tmpfile" && mv "$tmpfile" docs/plans/YYYY-MM-DD_<feature-name>.md`
+  - `tmpfile="$(mktemp)" && python3 "$PLAN_WRITING_HOME/scripts/format_plan_contract.py" --path docs/plans/YYYY-MM-DD_<feature-name>.json > "$tmpfile" && mv "$tmpfile" docs/plans/YYYY-MM-DD_<feature-name>.json`
 - Validate a saved plan file:
-  - `python3 "$PLAN_WRITING_HOME/scripts/validate_plan_contract.py" --path docs/plans/YYYY-MM-DD_<feature-name>.md`
+  - `python3 "$PLAN_WRITING_HOME/scripts/validate_plan_contract.py" --path docs/plans/YYYY-MM-DD_<feature-name>.json`
 - Validate raw JSON before saving:
   - `printf '%s' "$PLAN_CONTRACT" | python3 "$PLAN_WRITING_HOME/scripts/validate_plan_contract.py"`
 
 ## Red flags
 
-- Treating prose below the fence as authoritative
+- Treating markdown wrappers or prose as part of the saved authority
 - Leaving strategy decisions in chat instead of in `spec`
-- Creating a saved plan file without a valid fenced `plan/1` block
+- Creating a saved plan file that is not raw JSON
 - Replanning by discarding prior `state.evidence`
 - Handing execution a contract that still needs human interpretation

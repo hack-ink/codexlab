@@ -101,45 +101,46 @@ def main() -> None:
         input_text=raw_contract,
     )
     assert_true(
-        formatted.stdout.startswith("```json\n{\n  \"spec\""),
-        "formatter should emit a fenced JSON block first",
+        formatted.stdout.startswith("{\n  \"spec\""),
+        "formatter should emit canonical JSON",
     )
-    print("OK: formatter emits canonical fenced markdown")
+    print("OK: formatter emits canonical JSON")
 
     validate_formatted = run(
         ["python3", str(VALIDATOR)],
         input_text=formatted.stdout,
     )
     assert_equal(validate_formatted.stdout.strip(), "OK", "validator should accept formatted output")
-    print("OK: validator accepts canonical fenced markdown")
+    print("OK: validator accepts canonical JSON")
 
-    with_tail = formatted.stdout + "\n## Non-authoritative context\n\nThis prose is ignored.\n"
-    reformatted = run(
-        ["python3", str(FORMATTER)],
-        input_text=with_tail,
-    )
-    assert_true(
-        "## Non-authoritative context" in reformatted.stdout,
-        "formatter should preserve trailing markdown context",
-    )
-    print("OK: formatter preserves trailing markdown context")
-
-    wrong_fence = (
-        "```text\n"
+    wrapped_json = (
+        "```json\n"
         + json.dumps(build_contract(), indent=2)
         + "\n```\n"
     )
-    wrong_fence_proc = run(
+    wrapped_json_proc = run(
         ["python3", str(VALIDATOR)],
-        input_text=wrong_fence,
+        input_text=wrapped_json,
         check=False,
     )
-    assert_equal(wrong_fence_proc.returncode, 2, "non-json fenced blocks should fail")
+    assert_equal(wrapped_json_proc.returncode, 2, "markdown wrappers should fail")
     assert_true(
-        "```json fenced block" in wrong_fence_proc.stderr,
-        "wrong fence failure should mention the json fence requirement",
+        "plan input must be raw JSON, not markdown-wrapped" in wrapped_json_proc.stderr,
+        "wrapper failure should mention the raw JSON requirement",
     )
-    print("OK: non-json fenced blocks are rejected")
+    print("OK: markdown wrappers are rejected")
+
+    non_object_json_proc = run(
+        ["python3", str(VALIDATOR)],
+        input_text="[]\n",
+        check=False,
+    )
+    assert_equal(non_object_json_proc.returncode, 2, "non-object JSON should fail validation")
+    assert_true(
+        "plan/1 must be a JSON object" in non_object_json_proc.stderr,
+        "non-object JSON failure should surface the schema error",
+    )
+    print("OK: non-object JSON surfaces a schema validation error")
 
     duplicate_ids = build_contract()
     duplicate_ids["spec"]["tasks"][1]["id"] = "task-1"  # type: ignore[index]

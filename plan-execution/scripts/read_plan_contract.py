@@ -35,6 +35,8 @@ def read_input(args: argparse.Namespace) -> tuple[str, str | None]:
     if args.path is None:
         raise ValueError("--path is required unless --stdin is used")
     path = args.path.resolve()
+    if path.suffix != ".json":
+        raise ValueError(f"saved plan path must use a .json suffix: {path}")
     if not path.exists():
         raise ValueError(f"plan file path does not exist: {path}")
     if not path.is_file():
@@ -67,7 +69,7 @@ def build_result(args: argparse.Namespace) -> tuple[dict[str, Any], int]:
         return result, 2
 
     result = empty_result(path=path)
-    parsed = parse_contract_text(raw_text, require_fence=True)
+    parsed = parse_contract_text(raw_text, from_saved_file=True)
     result["tail_present"] = bool(parsed.tail.strip())
     result["migration_required"] = parsed.migration_required
     if not parsed.ok or parsed.contract is None:

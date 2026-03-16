@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -56,12 +55,6 @@ STATE_KEYS = {
     "replan_reason",
     "context_snapshot",
 }
-FENCE_RE = re.compile(
-    r"^\s*```(?P<lang>[^\n]*)\n(?P<body>.*?)\n```(?P<tail>[\s\S]*)\Z",
-    re.S,
-)
-
-
 @dataclass(frozen=True)
 class ContractParseResult:
     ok: bool
@@ -494,53 +487,39 @@ def validate_contract_object(obj: Any) -> tuple[dict[str, Any] | None, list[str]
 def extract_contract_text(
     raw_text: str,
     *,
-    require_fence: bool,
-) -> tuple[str | None, str, list[str], bool]:
+    from_saved_file: bool,
+) -> tuple[str | None, list[str], bool]:
     text = raw_text.lstrip("\ufeff")
-    stripped = text.lstrip()
+    stripped = text.strip()
     if not stripped:
-        return None, "", ["plan input is empty"], False
+        return None, ["plan input is empty"], False
 
-    if stripped.startswith("{"):
-        if require_fence:
+    if stripped.startswith("```"):
+        if from_saved_file:
             return (
                 None,
-                "",
-                [
-                    "plan file must start with a ```json fenced block; raw JSON must be materialized into the saved markdown container"
-                ],
+                ["saved plan files must be raw JSON; markdown-wrapped plans require migration"],
                 True,
             )
-        return stripped, "", [], False
+        return None, ["plan input must be raw JSON, not markdown-wrapped"], False
 
-    if not stripped.startswith("```"):
-        if require_fence:
-            return (
-                None,
-                "",
-                [
-                    "plan file must start with a ```json fenced block; legacy prose-only plans require migration"
-                ],
-                True,
-            )
-        return None, "", ["plan input must be raw JSON or start with a fenced JSON block"], False
-
-    match = FENCE_RE.match(stripped)
-    if match is None:
-        return None, "", ["plan input starts with an unterminated fenced block"], False
-    if match.group("lang").strip() != "json":
-        return None, "", ["plan file must start with a ```json fenced block"], False
-    return match.group("body"), match.group("tail"), [], False
+    if from_saved_file and stripped[0] not in '{["-0123456789tfn':
+        return (
+            None,
+            ["saved plan files must be raw JSON; prose-only plans require migration"],
+            True,
+        )
+    return stripped, [], False
 
 
 def parse_contract_text(
     raw_text: str,
     *,
-    require_fence: bool,
+    from_saved_file: bool,
 ) -> ContractParseResult:
-    contract_text, tail, errors, migration_required = extract_contract_text(
+    contract_text, errors, migration_required = extract_contract_text(
         raw_text,
-        require_fence=require_fence,
+        from_saved_file=from_saved_file,
     )
     if contract_text is None:
         return ContractParseResult(
@@ -557,7 +536,7 @@ def parse_contract_text(
         return ContractParseResult(
             ok=False,
             contract=None,
-            tail=tail,
+            tail="",
             errors=[f"plan/1 block is not valid JSON: {err}"],
             migration_required=False,
         )
@@ -567,7 +546,7 @@ def parse_contract_text(
         return ContractParseResult(
             ok=False,
             contract=None,
-            tail=tail,
+            tail="",
             errors=validation_errors,
             migration_required=False,
         )
@@ -575,21 +554,17 @@ def parse_contract_text(
     return ContractParseResult(
         ok=True,
         contract=contract,
-        tail=tail,
+        tail="",
         errors=[],
         migration_required=False,
     )
 
 
-def render_contract_markdown(contract: dict[str, Any], tail: str = "") -> str:
+def render_contract_json(contract: dict[str, Any]) -> str:
     normalized_contract, errors = validate_contract_object(contract)
     if normalized_contract is None:
         joined = "; ".join(errors) if errors else "unknown validation error"
         raise ValueError(joined)
 
     body = json.dumps(normalized_contract, indent=2, ensure_ascii=True)
-    rendered = f"```json\n{body}\n```\n"
-    trailing = tail.strip()
-    if trailing:
-        rendered += "\n" + trailing + "\n"
-    return rendered
+    return f"{body}\n"
