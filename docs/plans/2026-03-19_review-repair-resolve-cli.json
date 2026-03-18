@@ -1,0 +1,111 @@
+{
+  "spec": {
+    "schema": "plan/1",
+    "plan_id": "2026-03-19-review-repair-resolve-cli",
+    "goal": "Teach review-repair how to resolve GitHub review threads concretely by documenting the default `gh api graphql` flow for fetching thread IDs and calling `resolveReviewThread`, with an explicit reopen path via `unresolveReviewThread`.",
+    "success_criteria": [
+      "review-repair/SKILL.md contains concrete `gh api graphql` guidance for fetching review thread IDs and resolving threads with `resolveReviewThread`",
+      "review-repair/SKILL.md documents the reopen path with `unresolveReviewThread`",
+      "dev/review-repair/run_smoke.py guards the presence of the explicit CLI/API guidance",
+      "the installed runtime review-repair skill matches the updated source skill after sync",
+      "focused verification passes after the update"
+    ],
+    "constraints": [
+      "Keep the change scoped to review-repair and its smoke",
+      "Do not restructure the broader review lifecycle or rename skills",
+      "Prefer stable guidance sentences and compact command examples over a brittle wall of shell",
+      "Use the already-active review lifecycle lane instead of creating a new workspace"
+    ],
+    "defaults": {
+      "skills_workspace": "/Users/xavier/code/trusted/y/hack-ink/skills/.workspaces/chore-review-repair-delivery-gate",
+      "skills_repo_root": "/Users/xavier/code/trusted/y/hack-ink/skills"
+    },
+    "tasks": [
+      {
+        "id": "task-1",
+        "title": "Add explicit resolve CLI guidance to review-repair",
+        "status": "done",
+        "objective": "Update review-repair so verified-fix threads are resolved through a documented `gh api graphql` command path, including thread ID lookup and reopen guidance.",
+        "inputs": [
+          "review-repair/SKILL.md"
+        ],
+        "outputs": [
+          "Updated review-repair commands and hard-gate wording"
+        ],
+        "verification": [
+          "python3 dev/review-repair/run_smoke.py"
+        ],
+        "depends_on": []
+      },
+      {
+        "id": "task-2",
+        "title": "Harden smoke coverage for the resolve commands",
+        "status": "done",
+        "objective": "Update dev/review-repair/run_smoke.py so regressions in the explicit resolve CLI/API guidance fail the local smoke.",
+        "inputs": [
+          "dev/review-repair/run_smoke.py"
+        ],
+        "outputs": [
+          "Smoke assertions for gh api graphql, resolveReviewThread, and unresolveReviewThread"
+        ],
+        "verification": [
+          "python3 dev/review-repair/run_smoke.py"
+        ],
+        "depends_on": [
+          "task-1"
+        ]
+      },
+      {
+        "id": "task-3",
+        "title": "Sync runtime skill and verify",
+        "status": "done",
+        "objective": "Hot-sync the installed review-repair skill copy and rerun the focused verification set.",
+        "inputs": [
+          "/Users/xavier/.codex/skills/review-repair/SKILL.md"
+        ],
+        "outputs": [
+          "Updated installed runtime review-repair skill",
+          "Focused verification evidence"
+        ],
+        "verification": [
+          "python3 dev/review-repair/run_smoke.py",
+          "git diff --check"
+        ],
+        "depends_on": [
+          "task-1",
+          "task-2"
+        ]
+      }
+    ],
+    "replan_policy": {
+      "owner": "plan-writing",
+      "triggers": [
+        "The explicit resolve flow requires introducing a shared helper script instead of documenting commands in the skill",
+        "A repo-specific GitHub thread resolution entrypoint conflicts with the default gh api graphql path",
+        "The runtime sync path requires broader installer changes beyond the touched skill"
+      ]
+    }
+  },
+  "state": {
+    "phase": "done",
+    "current_task_id": null,
+    "next_task_id": null,
+    "blockers": [],
+    "evidence": [
+      "2026-03-19: Local probe confirmed that review-repair already requires resolving completed threads but does not yet document a concrete GitHub CLI/API path for doing so.",
+      "2026-03-19: Updated review-repair/SKILL.md with explicit gh api graphql guidance for listing review thread IDs, resolving completed threads through resolveReviewThread, and reopening via unresolveReviewThread.",
+      "2026-03-19: Hardened dev/review-repair/run_smoke.py to assert the new gh api graphql, reviewThreads(first: 100), resolveReviewThread, and unresolveReviewThread guidance; verified with python3 dev/review-repair/run_smoke.py and git diff --check.",
+      "2026-03-19: Hot-synced /Users/xavier/.codex/skills/review-repair/SKILL.md from source and verified the installed skill now contains the explicit GitHub thread command guidance."
+    ],
+    "last_updated": "2026-03-19T03:16:00Z",
+    "replan_reason": null,
+    "context_snapshot": {
+      "local_checkpoint": {
+        "current_theory": "Agents are skipping thread resolution because the contract says when to resolve but not how to perform the resolve action through GitHub.",
+        "contradictory_evidence": "If the runtime already had a separate repo-approved thread-resolution helper, documenting gh api graphql here could be redundant or conflicting.",
+        "missing_evidence": "Need to add and verify a compact default gh api graphql path for query, resolve, and reopen inside review-repair.",
+        "next_action": "Patch review-repair and its smoke, then hot-sync the installed skill copy."
+      }
+    }
+  }
+}

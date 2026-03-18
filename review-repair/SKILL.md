@@ -45,6 +45,7 @@ Every emitted result must use the stable `head_sha` field name for the repaired 
   - the code is actually fixed
   - verification passed on that new state
   - the thread reply matches the fix that landed
+- When a thread satisfies those gates, resolve it through GitHub instead of leaving manual cleanup behind just because resolve requires CLI or API work.
 - Do not resolve when you are pushing back, asking for clarification, or still carrying unresolved work.
 - Do not use performative agreement in replies; answer with the fix, the question, or the technical pushback.
 
@@ -64,8 +65,89 @@ Every emitted result must use the stable `head_sha` field name for the repaired 
    - treat that pushed head as `needs_re_review` so `review-request` can request a fresh review for the new head
 6. Reply in-thread for every addressed comment.
 7. Resolve only the threads that satisfy the hard gates.
+   - Default CLI path:
+     - look up thread IDs with `gh api graphql` against `pullRequest.reviewThreads`
+     - use `path`, `line` / `startLine`, and the latest comment `url` or body to match the right `$THREAD_ID` before resolving
+     - resolve a completed thread with `resolveReviewThread`
+     - reopen a thread later with `unresolveReviewThread` if new evidence shows the fix was incomplete
 8. If the branch head changes during the loop, stop carrying prior repair state forward implicitly and return `needs_re_review` for the new head.
 9. Emit the machine-readable result envelope with `status`, `head_sha`, `pr_ref`, and `evidence` for that branch state.
+
+## GitHub thread commands
+
+Use these default commands unless the repository documents a stricter helper or wrapper.
+
+List review thread IDs for a PR:
+
+```bash
+gh api graphql \
+  -f query='
+    query($owner: String!, $repo: String!, $number: Int!) {
+      repository(owner: $owner, name: $repo) {
+        pullRequest(number: $number) {
+          reviewThreads(first: 100) {
+            nodes {
+              id
+              isResolved
+              isOutdated
+              path
+              line
+              startLine
+              comments(last: 1) {
+                nodes {
+                  author {
+                    login
+                  }
+                  body
+                  url
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  ' \
+  -F owner="$OWNER" \
+  -F repo="$REPO" \
+  -F number="$PR_NUMBER"
+```
+
+Use `path`, `line` / `startLine`, and the latest comment `url` or body from that query to select the matching `$THREAD_ID` before you call a mutation.
+
+Resolve a completed thread:
+
+```bash
+gh api graphql \
+  -f query='
+    mutation($threadId: ID!) {
+      resolveReviewThread(input: {threadId: $threadId}) {
+        thread {
+          id
+          isResolved
+        }
+      }
+    }
+  ' \
+  -F threadId="$THREAD_ID"
+```
+
+Reopen a thread if a later review pass shows the fix was incomplete:
+
+```bash
+gh api graphql \
+  -f query='
+    mutation($threadId: ID!) {
+      unresolveReviewThread(input: {threadId: $threadId}) {
+        thread {
+          id
+          isResolved
+        }
+      }
+    }
+  ' \
+  -F threadId="$THREAD_ID"
+```
 
 ## Three-round escalation
 
@@ -89,5 +171,6 @@ Every emitted result must use the stable `head_sha` field name for the repaired 
 - Repairing code without re-running verification
 - Committing or pushing a repair batch without first running `delivery-prepare`
 - Posting a top-level PR comment instead of replying in-thread
+- Leaving a verified completed thread unresolved because the resolve step required `gh api graphql`
 - Resolving a thread before the fix is verified
 - Requesting another review round from inside this skill instead of returning `needs_re_review`
