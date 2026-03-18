@@ -13,7 +13,7 @@
       "policy_reason_needles": [
         "Fix this bug",
         "multiple plausible hypotheses, regression risks, or missing tests worth challenging",
-        "Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `codebase-review`, or `verification-before-completion` already applies."
+        "Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `codebase-review`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies."
       ]
     },
     {
@@ -28,7 +28,7 @@
       "policy_reason_needles": [
         "read-only review pass before trusting a fix, explanation, or closeout claim",
         "multiple plausible hypotheses, regression risks, or missing tests worth challenging",
-        "Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `codebase-review`, or `verification-before-completion` already applies."
+        "Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `codebase-review`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies."
       ]
     },
     {
@@ -44,6 +44,78 @@
         "multiple files, questions, or evidence sources can be inspected in parallel",
         "reduce context bloat",
         "This skill commonly stacks with `systematic-debugging`, `research`, `codebase-review`, and `verification-before-completion`."
+      ]
+    },
+    {
+      "name": "workspace lane setup is the default start for implementation work",
+      "prompt": "Start a new implementation task in an isolated lane under .workspaces so it can develop independently and be cleaned up after merge.",
+      "expect_primary_process_skills": [
+        "workspaces"
+      ],
+      "expect_overlay_skills": [],
+      "policy_reason_needles": [
+        "Start new implementation work or resume a lane -> `workspaces`",
+        "load `workspaces` first so each task gets its own isolated `.workspaces/*` lane"
+      ]
+    },
+    {
+      "name": "workspace conflicts route to reconciliation",
+      "prompt": "Two .workspaces lanes now conflict and one surviving lane needs to absorb the donor lane before review can continue.",
+      "expect_primary_process_skills": [
+        "workspace-reconcile"
+      ],
+      "expect_overlay_skills": [],
+      "policy_reason_needles": [
+        "Multiple `.workspaces/*` lanes conflict and one must survive -> `workspace-reconcile`",
+        "This conflict came from multiple `.workspaces/*` lanes"
+      ]
+    },
+    {
+      "name": "pre-pr self review routes to review prepare",
+      "prompt": "Before opening the PR, self-review the actual diff, fix findings, rerun verification, and escalate if the churn still is not converging.",
+      "expect_primary_process_skills": [
+        "review-prepare"
+      ],
+      "expect_overlay_skills": [],
+      "policy_reason_needles": [
+        "Before creating or updating a PR, run the pre-PR self-review loop -> `review-prepare`",
+        "Before I open or refresh the PR, self-review this diff"
+      ]
+    },
+    {
+      "name": "pr review request routes to review request",
+      "prompt": "The PR already exists, the branch is pushed, and I need to request Codex review on the non-draft branch.",
+      "expect_primary_process_skills": [
+        "review-request"
+      ],
+      "expect_overlay_skills": [],
+      "policy_reason_needles": [
+        "After the PR exists and the branch is pushed, request Codex review -> `review-request`",
+        "The PR exists and needs Codex review requested"
+      ]
+    },
+    {
+      "name": "github review repair routes to review repair",
+      "prompt": "Repair unresolved GitHub review comments in-thread, rerun verification, resolve the fixed threads, and tell me if another review round is needed.",
+      "expect_primary_process_skills": [
+        "review-repair"
+      ],
+      "expect_overlay_skills": [],
+      "policy_reason_needles": [
+        "When GitHub review comments arrive, repair them in-thread and resolve only verified fixes -> `review-repair`",
+        "These GitHub review comments need fixing and thread resolution"
+      ]
+    },
+    {
+      "name": "merge readiness routes to pr land",
+      "prompt": "Check whether this PR is ready to land, sync it if the base is stale, and merge it without doing tracker closeout in the same step.",
+      "expect_primary_process_skills": [
+        "pr-land"
+      ],
+      "expect_overlay_skills": [],
+      "policy_reason_needles": [
+        "When the PR may be mergeable, check readiness and land it without swallowing closeout -> `pr-land`",
+        "This PR may be ready to land"
       ]
     },
     {

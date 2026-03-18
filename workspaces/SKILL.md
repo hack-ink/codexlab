@@ -1,33 +1,36 @@
 ---
-name: git-workspaces
-description: Use when starting feature work that benefits from branch isolation, independent parallel implementation lanes, or a disposable workspace. Creates clone-backed Git workspaces with safe directory selection, ignore verification, repo-native bootstrap, and lane naming guidance.
+name: workspaces
+description: Use when starting, reusing, or closing an isolated clone-backed `.workspaces/*` lane for implementation work. Owns lane setup, lane reuse, and completed-lane cleanup of the workspace plus local and remote branches; does not own reconciliation, review, merge, or tracker closeout.
 ---
 
-# Git Workspaces
+# Workspaces
 
-## Purpose
+## Scope
 
-Use clone-backed Git workspaces when you need an isolated branch checkout without disturbing the current workspace.
+- This skill is the default entrypoint for development tasks that should run in an isolated lane.
+- This skill owns lane setup, lane reuse, and completed-lane closeout.
+- This skill does not own multi-lane reconciliation, review request/repair, merge execution, or tracker closeout.
+- Keep the filesystem convention `.workspaces/*`. The skill name is shorter than the directory name on purpose.
 
 Typical triggers:
 
-- Multiple unrelated implementation tasks or PR-like streams on the same repository
-- Parallel feature work on the same repository
-- Executing a plan in a clean branch-specific workspace
-- Hotfix work while the current tree is dirty or mid-refactor
-- Large Rust repos where branch isolation is useful
+- Start a task in a clean branch-specific lane
+- Reuse an existing lane for the same task
+- Close out a merged or explicitly abandoned lane
+- Clean up a finished lane's workspace and branch state after `delivery-closeout`
 
 ## Core rule
 
-- Prefer an existing workspace layout over inventing a new one.
-- When work is independent, default to one workspace per task lane instead of mixing unrelated changes in one branch or one agent run.
-- Keep project-local workspace directories ignored.
+- Default to one clone-backed `.workspaces/<lane>` lane per task, branch, and review stream.
+- Prefer reusing an existing matching lane over creating a duplicate.
+- Keep `.workspaces/` ignored.
 - Use self-contained clone-backed workspaces, not linked shared-Git checkouts, when the lane itself needs to run `git add`, `git commit`, `git push`, or other Git writes under sandboxed execution.
-- Run the repository's documented bootstrap and baseline verification after creation.
+- Run the repository's documented bootstrap and a fast baseline verification after creation.
+- Treat closeout as part of task completion. A finished lane is not done until the workspace and branch state are clean.
 
 ## Lane model
 
-Treat each workspace as one independent lane:
+Treat each `.workspaces/*` checkout as one independent lane:
 
 - One task, branch, and review stream per workspace
 - One agent or human owner at a time unless the lane is explicitly shared
@@ -92,7 +95,7 @@ If the intended local directory is not ignored:
 - Add or adjust ignore rules only when that repo change is in scope.
 - Otherwise stop and ask the user how they want workspaces stored.
 
-## Create the workspace
+## Create or reuse the workspace
 
 Basic flow:
 
@@ -101,6 +104,13 @@ repo_root="$(git rev-parse --show-toplevel)"
 branch_name="<branch-name>"
 workspace_dir_name="<single-segment-dir-name>"
 workspace_path="$repo_root/.workspaces/$workspace_dir_name"
+
+if [ -d "$workspace_path/.git" ]; then
+  cd "$workspace_path"
+  git status --short
+  git rev-parse --abbrev-ref HEAD
+  exit 0
+fi
 
 git clone --no-checkout . "$workspace_path"
 
@@ -140,41 +150,72 @@ Examples:
 
 Do not automatically run the heaviest full-suite command if the repository already documents a lighter baseline gate.
 
-## Notes
+## Outputs
 
-- A clone-backed workspace is self-contained, so deleting the directory also deletes the local branch ref stored in that clone.
-- If you need to preserve the lane branch beyond teardown, push it or record the commit SHA before removing the workspace.
-- Reusing the same deterministic workspace path for retries is fine; reusing shared Git administrative storage is not.
+- `workspace_ready` - created a new lane and verified it is usable.
+- `workspace_reused` - reused an existing lane with matching task intent.
+- `workspace_closed` - finished closeout and reached the default clean target state.
+- `workspace_retained` - lane intentionally kept because the task is paused, blocked, or not actually complete.
+- `warned` - local cleanup succeeded but some non-fatal cleanup target, usually the remote branch, could not be removed.
+- `blocked` - setup or closeout stopped because a hard gate failed.
 
 ## Closeout / Teardown
 
-Use this when a lane is merged, intentionally abandoned, or paused long enough that the checkout should be reclaimed.
+- Closeout is only valid when the task is truly complete or explicitly abandoned.
+- Valid closeout states:
+  - PR merged and `delivery-closeout` already ran or was explicitly not needed
+  - task explicitly abandoned or cancelled with approval to clean up the lane
+- Do not clean up a lane that is still in review, still awaiting external action, or still carrying unresolved local investigation.
 
-Before removal:
-
-- Confirm the lane outcome first: merged, intentionally abandoned, or explicitly paused.
-- Inspect the current state:
+Before removal, inspect and prove the current state:
 
 ```bash
-git status --short
-git rev-parse --abbrev-ref HEAD
+git -C "$workspace_path" status --short
+git -C "$workspace_path" rev-parse --abbrev-ref HEAD
+git -C "$workspace_path" remote get-url origin
 ```
 
-- If the lane is expected to be merged, first discover the repo-appropriate, up-to-date integration branch for that lane from repo policy, PR or base-branch context, or Git metadata. Only stop and confirm if multiple plausible target branches remain or the discovered target conflicts with lane intent.
-- Then verify it is not carrying unique commits. Prefer checks such as:
+If the lane is expected to be merged, discover the repo-appropriate integration branch from repo policy, PR/base-branch context, or Git metadata. Only stop and ask when multiple plausible target branches remain or the discovered target conflicts with lane intent.
+
+Then verify it is not carrying unique commits:
 
 ```bash
-git branch --merged <target-branch>
-git log <target-branch>..<branch-name>
+git -C "$workspace_path" branch --merged <target-branch>
+git -C "$workspace_path" log <target-branch>..<branch-name>
+```
+
+If there is no merge-base, compare divergence explicitly instead of guessing:
+
+```bash
+git -C "$workspace_path" rev-list --count <target-branch>..<branch-name>
+git -C "$workspace_path" rev-list --count <branch-name>..<target-branch>
 ```
 
 - If the workspace contains uncommitted edits, stop and inspect them before removal.
 
+Remote-branch check:
+
+```bash
+git -C "$workspace_path" ls-remote --heads origin "$branch_name"
+```
+
 Teardown flow:
 
-1. Remove the workspace directory with `rm -rf <path>` only after showing the dirty state and unique-commit risk.
-2. If the branch needs to live on, push it or record the SHA before removal.
-3. If the branch is already merged and no longer needed locally, simply deleting the clone-backed workspace is enough.
+1. Verify the lane outcome and the unique-commit state.
+2. If the same branch also exists in the primary checkout, delete that local branch there once it is safe and not currently checked out.
+3. If the remote branch still exists and the task is complete, delete it:
+   - `git -C "$workspace_path" push origin --delete "$branch_name"`
+4. If the remote branch is already absent, record that it was auto-deleted or already cleaned up.
+5. Remove the workspace directory with `rm -rf "$workspace_path"` only after showing the dirty state and unique-commit risk.
+
+Default closeout target state:
+
+- `.workspaces/<lane>` does not exist
+- the lane-local branch disappears with the clone-backed workspace
+- any same-named local branch in the primary checkout is absent
+- the remote branch is absent
+
+If remote branch deletion fails because of branch protection, platform policy, or network failure, return `warned` instead of falsely claiming a fully clean closeout.
 
 ## Red flags
 
@@ -182,3 +223,4 @@ Teardown flow:
 - Running a generic bootstrap command while ignoring repo instructions
 - Treating a clone-backed workspace as if it still shared Git administrative state with the original checkout
 - Using linked shared-Git checkouts for sandboxed child lanes that must perform lane-local Git writes
+- Claiming a lane is fully closed while the remote branch still exists without recording whether GitHub auto-deleted it or deletion failed

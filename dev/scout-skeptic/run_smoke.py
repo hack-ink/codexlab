@@ -6,12 +6,16 @@ from pathlib import Path
 DEV_DIR = Path(__file__).resolve().parent
 REPO_ROOT = DEV_DIR.parents[1]
 COUPLED_SKILL_NEEDLES = [
-    "`git-workspaces`",
+    "`workspaces`",
     "`plan-writing`",
     "`plan-execution`",
     "`delivery-prepare`",
     "`delivery-closeout`",
-    "`parallel-conflict-resolution`",
+    "`workspace-reconcile`",
+    "`review-prepare`",
+    "`review-request`",
+    "`review-repair`",
+    "`pr-land`",
 ]
 
 
@@ -96,15 +100,11 @@ def assert_repo_docs() -> None:
 
 
 def assert_installable_docs_decoupled() -> None:
-    targets = [
-        REPO_ROOT / "scout-skeptic" / "SKILL.md",
-        REPO_ROOT / "skill-routing" / "SKILL.md",
-    ]
-    for path in targets:
-        text = read_text(path)
-        assert_not_contains(text, "helper", label=str(path))
-        for needle in COUPLED_SKILL_NEEDLES:
-            assert_not_contains(text, needle, label=str(path))
+    path = REPO_ROOT / "scout-skeptic" / "SKILL.md"
+    text = read_text(path)
+    assert_not_contains(text, "helper", label=str(path))
+    for needle in COUPLED_SKILL_NEEDLES:
+        assert_not_contains(text, needle, label=str(path))
     print("OK: installable skill docs stay decoupled from other concrete skills")
 
 
