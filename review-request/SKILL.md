@@ -9,6 +9,9 @@ description: Use after a PR exists and `review-prepare` has converged to request
 
 - This skill owns the PR review request step.
 - Default meaning is a Codex review request on an existing PR.
+- The repo-approved review entrypoint is explicit:
+  - the first PR submission does not need an `@codex review` comment because Codex review is requested automatically
+  - after a later push changes the PR head, request the next review round with an `@codex review` comment
 - This skill does not repair comments, resolve threads, merge the PR, or close out trackers.
 
 ## Inputs
@@ -34,6 +37,8 @@ description: Use after a PR exists and `review-prepare` has converged to request
 - The current head must have fresh verification evidence.
 - `review-prepare` must already be clean for this branch state.
 - The requested review must be explicitly bound to the same head SHA that was verified through the stable `head_sha` field.
+- Do not add an `@codex review` comment for the initial PR submission path when the platform already requested Codex review automatically.
+- When a later pushed head needs another review round, use an `@codex review` comment on that PR.
 
 ## Procedure
 
@@ -42,7 +47,9 @@ description: Use after a PR exists and `review-prepare` has converged to request
 3. Confirm the working tree is clean:
    - `git status --short`
 4. Confirm fresh verification evidence exists for the current head.
-5. Request Codex review through the current repo-approved review entrypoint.
+5. Choose the repo-approved review entrypoint for this PR state:
+   - if this is the initial PR submission path, rely on the automatic Codex review request and do not add an `@codex review` comment
+   - if the PR already exists and a later push changed the head, request the next review round with an `@codex review` comment
 6. Emit the machine-readable result envelope with `status`, `head_sha`, `pr_ref`, and `evidence`.
 7. Treat any later branch head change as invalidating this request for downstream gate purposes until a new request is sent for the new head.
 
@@ -57,4 +64,5 @@ description: Use after a PR exists and `review-prepare` has converged to request
 - Requesting review on a draft PR
 - Requesting review before the branch is pushed
 - Requesting review from a dirty workspace
+- Posting `@codex review` on the initial PR submission path when review was already requested automatically
 - Treating this skill as if it owns the repair loop or merge decision

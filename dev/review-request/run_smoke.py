@@ -30,6 +30,8 @@ def main() -> int:
         "head SHA",
         "`review_requested`",
         "`blocked`",
+        "does not need an `@codex review` comment because Codex review is requested automatically",
+        "request the next review round with an `@codex review` comment",
         "does not repair comments",
     ]:
         assert_contains(text, needle)

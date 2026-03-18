@@ -1,0 +1,119 @@
+{
+  "spec": {
+    "schema": "plan/1",
+    "plan_id": "2026-03-19-review-request-entrypoint",
+    "goal": "Make the review-request entrypoint explicit: the initial PR submission relies on automatic Codex review request behavior, while later pushed heads require an `@codex review` comment to request another review round.",
+    "success_criteria": [
+      "review-request/SKILL.md states that the repo-approved review entrypoint is automatic on the first PR submission and `@codex review` on later pushed heads",
+      "dev/review-request/run_smoke.py guards the explicit automatic-first and `@codex review`-after-push contract text",
+      "home/codex/AGENTS.md mirrors the same review-request behavior",
+      "dev/smoke/codex/run_scout_skeptic_source_smoke.py guards the new AGENTS wording",
+      "the installed runtime review-request skill copy and live ~/.codex/AGENTS.md reflect the updated wording after sync and activation"
+    ],
+    "constraints": [
+      "Keep the change scoped to explicit review-request entrypoint behavior",
+      "Do not rename skills or restructure the lifecycle beyond wording and smoke coverage",
+      "Edit only the touched skill, paired smokes, and matching codex AGENTS guidance",
+      "Use the existing review lifecycle branch and keep verification focused"
+    ],
+    "defaults": {
+      "skills_workspace": "/Users/xavier/code/trusted/y/hack-ink/skills/.workspaces/chore-review-repair-delivery-gate",
+      "skills_repo_root": "/Users/xavier/code/trusted/y/hack-ink/skills",
+      "nix_repo_root": "/Users/xavier/Documents/nix"
+    },
+    "tasks": [
+      {
+        "id": "task-1",
+        "title": "Explicitly define the review-request entrypoint",
+        "status": "done",
+        "objective": "Update review-request so the initial PR submission is automatic and later pushed heads use an `@codex review` comment, then harden the review-request smoke to assert that exact behavior.",
+        "inputs": [
+          "review-request/SKILL.md",
+          "dev/review-request/run_smoke.py"
+        ],
+        "outputs": [
+          "Updated review-request contract wording",
+          "Smoke assertions for automatic initial review and follow-up `@codex review` comments"
+        ],
+        "verification": [
+          "python3 dev/review-request/run_smoke.py"
+        ],
+        "depends_on": []
+      },
+      {
+        "id": "task-2",
+        "title": "Mirror the same entrypoint rule in AGENTS",
+        "status": "done",
+        "objective": "Update home/codex/AGENTS.md and its source smoke so the lifecycle policy says initial PR submission is automatic and later pushed heads use `@codex review` via review-request.",
+        "inputs": [
+          "/Users/xavier/Documents/nix/home/codex/AGENTS.md",
+          "/Users/xavier/Documents/nix/dev/smoke/codex/run_scout_skeptic_source_smoke.py"
+        ],
+        "outputs": [
+          "Updated codex AGENTS review-request wording",
+          "Source smoke assertions for the explicit entrypoint behavior"
+        ],
+        "verification": [
+          "python3 dev/smoke/codex/run_scout_skeptic_source_smoke.py"
+        ],
+        "depends_on": [
+          "task-1"
+        ]
+      },
+      {
+        "id": "task-3",
+        "title": "Sync runtime copies and verify",
+        "status": "done",
+        "objective": "Sync the installed review-request skill and live AGENTS surface to the new wording, then rerun the focused verification set.",
+        "inputs": [
+          "/Users/xavier/.codex/skills/review-request/SKILL.md",
+          "/Users/xavier/.codex/AGENTS.md"
+        ],
+        "outputs": [
+          "Updated installed review-request skill",
+          "Verified live AGENTS wording"
+        ],
+        "verification": [
+          "python3 dev/review-request/run_smoke.py",
+          "python3 dev/smoke/codex/run_scout_skeptic_source_smoke.py",
+          "git diff --check"
+        ],
+        "depends_on": [
+          "task-1",
+          "task-2"
+        ]
+      }
+    ],
+    "replan_policy": {
+      "owner": "plan-writing",
+      "triggers": [
+        "The requested behavior requires changing the review lifecycle stage boundaries instead of wording and smoke updates",
+        "The repo-approved review entrypoint differs across repos and cannot be expressed as one shared codex policy line",
+        "Runtime sync requires a broader installer change rather than touched-surface updates"
+      ]
+    }
+  },
+  "state": {
+    "phase": "done",
+    "current_task_id": null,
+    "next_task_id": "task-1",
+    "next_task_id": null,
+    "blockers": [],
+    "evidence": [
+      "2026-03-19: Local probe showed that review-request still says only 'current repo-approved review entrypoint' and does not encode the explicit automatic-first versus `@codex review`-after-push behavior.",
+      "2026-03-19: Updated review-request/SKILL.md and dev/review-request/run_smoke.py so the initial PR submission path is automatic and later pushed heads use an `@codex review` comment; verified with python3 dev/review-request/run_smoke.py and git diff --check in the skills workspace.",
+      "2026-03-19: Updated /Users/xavier/Documents/nix/home/codex/AGENTS.md and dev/smoke/codex/run_scout_skeptic_source_smoke.py to mirror the same review-request entrypoint rule; verified with python3 dev/smoke/codex/run_scout_skeptic_source_smoke.py and git diff --check in the nix repo.",
+      "2026-03-19: Synced /Users/xavier/.codex/skills/review-request/SKILL.md to the updated source wording, ran sudo -n -H darwin-rebuild switch --flake /Users/xavier/Documents/nix#acg-box, and verified the live /Users/xavier/.codex/AGENTS.md surface now contains the automatic-first and `@codex review`-after-push rule."
+    ],
+    "last_updated": "2026-03-19T03:01:00Z",
+    "replan_reason": null,
+    "context_snapshot": {
+      "local_checkpoint": {
+        "current_theory": "The contract gap is in review-request wording, not in review-repair or delivery-prepare.",
+        "contradictory_evidence": "If some repo-specific policy already hardcoded `@codex review` everywhere, adding automatic-first behavior here would conflict with existing repo-approved entrypoints.",
+        "missing_evidence": "Need to patch review-request, AGENTS, and both smokes, then verify the runtime copies match.",
+        "next_action": "Update review-request and its smoke first, then mirror the same explicit entrypoint rule in codex AGENTS and runtime surfaces."
+      }
+    }
+  }
+}
