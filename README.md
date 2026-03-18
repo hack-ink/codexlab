@@ -4,9 +4,7 @@ This repository hosts reusable agent skills for Codex workflows.
 
 ## Available skills
 
-- `scout-skeptic` - additive overlay guidance for non-trivial tasks that benefit from bounded parallel exploration, hypothesis checking, or adversarial review while the main thread keeps implementation ownership (`scout-skeptic/SKILL.md`).
-- `code-housekeeping` - evidence-backed cleanup review workflow for compatibility shims, stale artifacts, or dead code that may be safe to remove later (`code-housekeeping/SKILL.md`).
-- `codebase-review` - methodology and tooling for full codebase review with risk triage, slicing, findings, decision logs, and SHA-anchored coverage gates (`codebase-review/SKILL.md`).
+- `scout-skeptic` - additive checkpoint guidance for non-trivial tasks that still need multi-file evidence gathering, theory challenge, or verification pressure after a short probe, with optional read-only scout/skeptic child-agent execution when parallelism materially helps (`scout-skeptic/SKILL.md`).
 - `dep-roll` - latest-compatible dependency-graph upgrade workflow for pnpm, Poetry, and Cargo, with X.Y manifest-range discipline, tooling-owned lock regeneration, verification, and trailing Dependabot reconciliation (`dep-roll/SKILL.md`).
 - `delivery-prepare` - producer stage of the shared machine-first delivery contract: local delivery checks plus a valid `delivery/1` payload with explicit authority, mode, and typed refs for downstream closeout (`delivery-prepare/SKILL.md`).
 - `delivery-closeout` - consumer stage of the shared machine-first delivery contract: reads a pushed anchor plus a `delivery/1` payload from git, stdin, or a file, treats Linear as the source of truth, and mirrors issue outcomes back to GitHub with comment plus open/close only (`delivery-closeout/SKILL.md`).
@@ -24,7 +22,7 @@ This repository hosts reusable agent skills for Codex workflows.
 - `skill-routing` - generic skill-discovery and loading policy with primary-vs-overlay skill classes plus an optional manual child denylist; the shipped policy uses version 5 with `child_forbidden = ["scout-skeptic"]` and accepts only known local skill names as explicit restrictions (`skill-routing/SKILL.md`).
 - `verification-before-completion` - evidence-first gate for any completion, readiness, or pass claim, especially before PRs, merges, or task closeout (`verification-before-completion/SKILL.md`).
 - `workspace-reconcile` - workspace-lane-only conflict reconciliation for multiple `.workspaces/*` lanes, with surviving-lane selection, strategy choice, verification, and cleanup-candidate reporting (`workspace-reconcile/SKILL.md`).
-- `workspaces` - default clone-backed `.workspaces/*` lane workflow for setup, reuse, and finished-lane cleanup of the workspace plus local and remote branches (`workspaces/SKILL.md`).
+- `workspaces` - default clone-backed `.workspaces/*` lane workflow for starting or resuming non-read-only implementation work, plus finished-lane cleanup of the workspace and local/remote branches (`workspaces/SKILL.md`).
 
 ## Contributing
 

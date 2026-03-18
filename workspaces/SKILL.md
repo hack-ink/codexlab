@@ -1,27 +1,28 @@
 ---
 name: workspaces
-description: Use when starting, reusing, or closing an isolated clone-backed `.workspaces/*` lane for implementation work. Owns lane setup, lane reuse, and completed-lane cleanup of the workspace plus local and remote branches; does not own reconciliation, review, merge, or tracker closeout.
+description: Use for any non-read-only development task that starts or resumes implementation in this repo unless the correct isolated lane is already active. Owns clone-backed `.workspaces/*` lane setup, reuse, and completed-lane cleanup of the workspace plus local and remote branches; does not own reconciliation, review, merge, or tracker closeout.
 ---
 
 # Workspaces
 
 ## Scope
 
-- This skill is the default entrypoint for development tasks that should run in an isolated lane.
+- This skill is the default entrypoint for non-read-only development tasks unless the correct isolated lane is already active.
 - This skill owns lane setup, lane reuse, and completed-lane closeout.
 - This skill does not own multi-lane reconciliation, review request/repair, merge execution, or tracker closeout.
 - Keep the filesystem convention `.workspaces/*`. The skill name is shorter than the directory name on purpose.
 
 Typical triggers:
 
+- Start a non-read-only implementation task even when the user only asked for a fix, feature, or refactor
 - Start a task in a clean branch-specific lane
-- Reuse an existing lane for the same task
+- Resume implementation in an existing matching lane
 - Close out a merged or explicitly abandoned lane
 - Clean up a finished lane's workspace and branch state after `delivery-closeout`
 
 ## Core rule
 
-- Default to one clone-backed `.workspaces/<lane>` lane per task, branch, and review stream.
+- Default to one clone-backed `.workspaces/<lane>` lane per non-read-only implementation task, branch, and review stream unless the correct lane is already active.
 - Prefer reusing an existing matching lane over creating a duplicate.
 - Keep `.workspaces/` ignored.
 - Use self-contained clone-backed workspaces, not linked shared-Git checkouts, when the lane itself needs to run `git add`, `git commit`, `git push`, or other Git writes under sandboxed execution.

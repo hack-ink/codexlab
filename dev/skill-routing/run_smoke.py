@@ -30,7 +30,7 @@ class OverlayRoutingFixture:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Smoke-test the child denylist policy and static routing contract."
+        description="Smoke-test the child denylist policy and checked-in routing contract."
     )
     parser.add_argument(
         "--runtime-policy",
@@ -184,6 +184,9 @@ def assert_overlay_routing_fixtures(helper) -> None:
     negative_cases = 0
     stacked_cases = 0
     direct_only_cases = 0
+    workspace_cases = 0
+    generic_workspace_cases = 0
+    non_jargon_overlay_cases = 0
     seen_prompts: set[str] = set()
 
     for fixture in fixtures:
@@ -257,10 +260,19 @@ def assert_overlay_routing_fixtures(helper) -> None:
                 )
             if fixture.expect_primary_process_skills:
                 stacked_cases += 1
+            lowered_prompt = fixture.prompt.lower()
+            if "parallel" not in lowered_prompt and "adversarial" not in lowered_prompt:
+                non_jargon_overlay_cases += 1
         else:
             negative_cases += 1
             if not fixture.expect_primary_process_skills:
                 direct_only_cases += 1
+
+        if fixture.expect_primary_process_skills == ("workspaces",):
+            workspace_cases += 1
+            lowered_prompt = fixture.prompt.lower()
+            if ".workspaces" not in lowered_prompt and " lane " not in f" {lowered_prompt} ":
+                generic_workspace_cases += 1
 
     if positive_cases == 0 or negative_cases == 0:
         raise AssertionError(
@@ -273,6 +285,16 @@ def assert_overlay_routing_fixtures(helper) -> None:
     if direct_only_cases == 0:
         raise AssertionError(
             "routing fixtures must include at least one direct-only case with no primary workflow skill"
+        )
+    if workspace_cases == 0:
+        raise AssertionError("routing fixtures must include at least one workspaces case")
+    if generic_workspace_cases == 0:
+        raise AssertionError(
+            "routing fixtures must include at least one workspaces case without explicit lane jargon"
+        )
+    if non_jargon_overlay_cases == 0:
+        raise AssertionError(
+            "routing fixtures must include at least one scout-skeptic case without explicit parallel/adversarial jargon"
         )
 
     print(

@@ -1,0 +1,116 @@
+{
+  "spec": {
+    "schema": "plan/1",
+    "plan_id": "routing-trigger-checkpoint-alignment",
+    "goal": "Align skill-routing, workspaces, scout-skeptic, and runtime wording so implementation tasks enter workspaces reliably, scout-skeptic triggers as a checkpoint instead of a sidecar-first protocol, and repo-local validation covers the intended routing contract.",
+    "success_criteria": [
+      "workspaces frontmatter and repo conventions describe non-read-only implementation work as the default isolated-lane entrypoint without relying on body-only wording",
+      "scout-skeptic and runtime AGENTS/config/agent prompts remove stale sidecar terminology and describe a checkpoint model with optional read-only child-agent execution",
+      "routing fixtures and smoke coverage reflect the updated contract and repo-native verification passes"
+    ],
+    "constraints": [
+      "Keep single-file and trivial read-only tasks on the direct path",
+      "Do not widen child capability beyond existing read-only scout/skeptic behavior",
+      "Keep source and live runtime wording aligned where this task edits both repos"
+    ],
+    "defaults": {
+      "workspace_branch": "chore/routing-trigger-hardening",
+      "workspace_dir": ".workspaces/chore-routing-trigger-hardening"
+    },
+    "tasks": [
+      {
+        "id": "task-contract",
+        "title": "Align routing contracts and workspace convention",
+        "status": "done",
+        "objective": "Update repo-local routing and workspace guidance so the desired triggers are carried by the actual routing surfaces and the repo itself supports the documented .workspaces convention.",
+        "inputs": [
+          "AGENTS.md guidance in ~/Documents/nix/home/codex",
+          "skill-routing and workspaces skill docs",
+          "repo .gitignore and README"
+        ],
+        "outputs": [
+          "Updated frontmatter and policy wording for workspaces and routing",
+          "Repo-local .workspaces ignore support"
+        ],
+        "verification": [
+          "python3 dev/workspaces/run_smoke.py",
+          "python3 dev/skill-routing/run_smoke.py"
+        ],
+        "depends_on": []
+      },
+      {
+        "id": "task-checkpoint",
+        "title": "Convert scout-skeptic to checkpoint-first wording",
+        "status": "done",
+        "objective": "Remove sidecar-centric language from source and live runtime surfaces and replace it with checkpoint-first scout/skeptic wording plus optional child-agent execution semantics.",
+        "inputs": [
+          "scout-skeptic skill doc",
+          "home/codex/AGENTS.md",
+          "home/codex/config.toml and agents/*.toml"
+        ],
+        "outputs": [
+          "Updated scout-skeptic skill and runtime prompts/config",
+          "Terminology aligned across source and live runtime"
+        ],
+        "verification": [
+          "python3 dev/scout-skeptic/run_smoke.py",
+          "python3 dev/skill-routing/run_smoke.py"
+        ],
+        "depends_on": [
+          "task-contract"
+        ]
+      },
+      {
+        "id": "task-coverage",
+        "title": "Refresh fixtures and smoke coverage",
+        "status": "done",
+        "objective": "Update routing fixtures and static smoke checks so they exercise the new checkpoint and workspaces contract and catch future drift.",
+        "inputs": [
+          "skill-routing/routing-fixtures.json",
+          "dev/skill-routing/run_smoke.py",
+          "README skill catalog entries if wording changed"
+        ],
+        "outputs": [
+          "Updated fixture set and validation expectations",
+          "Passing repo-native smoke checks"
+        ],
+        "verification": [
+          "python3 dev/skill-routing/run_smoke.py",
+          "python3 dev/workspaces/run_smoke.py",
+          "python3 dev/scout-skeptic/run_smoke.py"
+        ],
+        "depends_on": [
+          "task-checkpoint"
+        ]
+      }
+    ],
+    "replan_policy": {
+      "owner": "plan-writing",
+      "triggers": [
+        "A wording change would require a different runtime model than checkpoint plus optional child-agent execution",
+        "Fixture or smoke updates reveal that the intended routing contract conflicts with another checked-in skill"
+      ]
+    }
+  },
+  "state": {
+    "phase": "done",
+    "current_task_id": null,
+    "next_task_id": null,
+    "blockers": [],
+    "evidence": [
+      "Verified repo root was clean before work, then added .workspaces ignore support so the documented lane convention is valid in this repo.",
+      "Created self-contained workspace lane at .workspaces/chore-routing-trigger-hardening on branch chore/routing-trigger-hardening.",
+      "Inspected current workspaces/scout-skeptic/skill-routing docs plus home/codex AGENTS and runtime prompts; sidecar terminology remained in source/live wording and workspaces default-entry routing was still body-only.",
+      "Updated workspaces frontmatter and README/.gitignore so non-read-only implementation work now routes through repo-local .workspaces lanes with matching repo convention.",
+      "Converted scout-skeptic and home/codex runtime wording from sidecar-first language to checkpoint wording with optional read-only child-agent execution.",
+      "Expanded routing fixtures and smoke assertions to require at least one generic workspaces case and one scout-skeptic case without explicit parallel/adversarial jargon.",
+      "Verification passed: python3 dev/skill-routing/run_smoke.py, python3 dev/skill-routing/run_smoke.py --runtime-policy /Users/xavier/.codex/skills/skill-routing/child-skill-policy.toml --runtime-skills-root /Users/xavier/.codex/skills, python3 dev/scout-skeptic/run_smoke.py, python3 dev/workspaces/run_smoke.py, and git diff --check."
+    ],
+    "last_updated": "2026-03-18T09:44:18Z",
+    "replan_reason": null,
+    "context_snapshot": {
+      "source_repo": "/Users/xavier/code/trusted/y/hack-ink/skills",
+      "workspace_repo": "/Users/xavier/code/trusted/y/hack-ink/skills/.workspaces/chore-routing-trigger-hardening"
+    }
+  }
+}

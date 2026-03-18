@@ -3,7 +3,7 @@
   "fixtures": [
     {
       "name": "debugging stacks overlay when evidence branches",
-      "prompt": "Investigate a flaky integration test with two plausible root causes. Inspect logs and several files in parallel, then challenge the current theory before changing code.",
+      "prompt": "Investigate a flaky integration test with two plausible root causes across logs and several files, then challenge the current theory before changing code.",
       "expect_primary_process_skills": [
         "systematic-debugging"
       ],
@@ -13,7 +13,7 @@
       "policy_reason_needles": [
         "Fix this bug",
         "multiple plausible hypotheses, regression risks, or missing tests worth challenging",
-        "Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `codebase-review`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies."
+        "Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies."
       ]
     },
     {
@@ -28,7 +28,7 @@
       "policy_reason_needles": [
         "read-only review pass before trusting a fix, explanation, or closeout claim",
         "multiple plausible hypotheses, regression risks, or missing tests worth challenging",
-        "Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `codebase-review`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies."
+        "Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies."
       ]
     },
     {
@@ -43,18 +43,30 @@
       "policy_reason_needles": [
         "multiple files, questions, or evidence sources can be inspected in parallel",
         "reduce context bloat",
-        "This skill commonly stacks with `systematic-debugging`, `research`, `codebase-review`, and `verification-before-completion`."
+        "This skill commonly stacks with `systematic-debugging`, `research`, and `verification-before-completion`."
       ]
     },
     {
-      "name": "workspace lane setup is the default start for implementation work",
-      "prompt": "Start a new implementation task in an isolated lane under .workspaces so it can develop independently and be cleaned up after merge.",
+      "name": "implementation work routes to workspaces without explicit lane wording",
+      "prompt": "Implement a new feature in this repo and keep the work isolated so review and cleanup stay clean.",
       "expect_primary_process_skills": [
         "workspaces"
       ],
       "expect_overlay_skills": [],
       "policy_reason_needles": [
-        "Start new implementation work or resume a lane -> `workspaces`",
+        "\"Implement this feature in this repo\" -> load `workspaces` first so the work starts in an isolated `.workspaces/*` lane.",
+        "Start or resume non-read-only implementation work -> `workspaces`"
+      ]
+    },
+    {
+      "name": "workspace lane setup is the default start for implementation work",
+      "prompt": "Resume a partially finished implementation task in this repo and continue in the matching isolated lane instead of starting over.",
+      "expect_primary_process_skills": [
+        "workspaces"
+      ],
+      "expect_overlay_skills": [],
+      "policy_reason_needles": [
+        "Start or resume non-read-only implementation work -> `workspaces`",
         "load `workspaces` first so each task gets its own isolated `.workspaces/*` lane"
       ]
     },

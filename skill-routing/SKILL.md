@@ -65,15 +65,14 @@ description: Use at the start of a task, before clarifying questions, or before 
 - Distinguish between primary workflow skills and additive overlay skills.
 - A primary workflow skill determines the main execution approach.
 - An additive overlay skill improves routing, context isolation, verification, or bounded parallel evidence gathering without taking ownership of the task.
-- `scout-skeptic` is an additive overlay skill.
+- `scout-skeptic` is an additive overlay skill. It uses a checkpoint pattern and may run locally or, when warranted, dispatch narrow read-only scout/skeptic child-agent objectives.
 - Apply the "smallest set" rule within a class, not across all skills globally.
-- Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `codebase-review`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies.
+- Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies.
 
 ## Primary workflow references for overlay examples
 
 - `systematic-debugging`
 - `research`
-- `codebase-review`
 - `verification-before-completion`
 - `workspaces`
 - `workspace-reconcile`
@@ -91,7 +90,8 @@ description: Use at the start of a task, before clarifying questions, or before 
 
 Examples:
 
-- "Fix this bug" -> load debugging workflow skills before language- or framework-specific skills; if there are multiple plausible causes or independent evidence questions, also load `scout-skeptic`.
+- "Fix this bug" -> load debugging workflow skills before language- or framework-specific skills; if multiple plausible causes or independent evidence questions remain after the first probe, also load `scout-skeptic`.
+- "Implement this feature in this repo" -> load `workspaces` first so the work starts in an isolated `.workspaces/*` lane.
 - "I have two unrelated implementation tasks in the same repo" -> load `workspaces` first so each task gets its own isolated `.workspaces/*` lane.
 - "Write the implementation plan" or a task already running in Plan mode -> load the planning workflow before any code changes.
 - "Execute this plan" or "continue from `docs/plans/...`" -> load the workflow that treats the saved plan as the execution entrypoint.
@@ -99,13 +99,13 @@ Examples:
 - "The PR exists and needs Codex review requested" -> load `review-request`.
 - "These GitHub review comments need fixing and thread resolution" -> load `review-repair`.
 - "This PR may be ready to land" -> load `pr-land`.
-- "Build a React dashboard" -> load the smallest set of process and implementation skills that match the task.
+- "Build a React dashboard in this repo" -> load `workspaces` first, then the smallest set of additional process and implementation skills that match the task.
 - "This conflict came from multiple `.workspaces/*` lanes" -> load `workspace-reconcile`.
 - "Prepare a commit" -> load the commit/push gate before committing or pushing.
 
 ## Workflow-specific routing examples
 
-- Start new implementation work or resume a lane -> `workspaces`
+- Start or resume non-read-only implementation work -> `workspaces`
 - Multiple `.workspaces/*` lanes conflict and one must survive -> `workspace-reconcile`
 - Before creating or updating a PR, run the pre-PR self-review loop -> `review-prepare`
 - After the PR exists and the branch is pushed, request Codex review -> `review-request`

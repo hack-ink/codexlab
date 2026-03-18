@@ -1,0 +1,111 @@
+{
+  "spec": {
+    "schema": "plan/1",
+    "plan_id": "remove-housekeeping-review-skills",
+    "goal": "Remove the two retired cleanup/review skills from the source repo and installed ~/.codex runtime without leaving broken references or stale registry entries.",
+    "success_criteria": [
+      "the two retired installable source directories are removed from the skills repo",
+      "README and routing/scout-skeptic references no longer mention the removed skills",
+      "the installed ~/.codex runtime no longer contains those directories or stale sources.json entries for them"
+    ],
+    "constraints": [
+      "Do not disturb unrelated skill content or the active routing edits already in the retained lane",
+      "Keep source-repo and installed-runtime references internally consistent after deletion"
+    ],
+    "defaults": {
+      "workspace_branch": "chore/routing-trigger-hardening",
+      "workspace_dir": ".workspaces/chore-routing-trigger-hardening"
+    },
+    "tasks": [
+      {
+        "id": "task-source",
+        "title": "Remove source skills and repo references",
+        "status": "done",
+        "objective": "Delete the retired installable skill directories from the source repo and clean README/routing references that would otherwise point at missing skills.",
+        "inputs": [
+          "source repo directories",
+          "README.md",
+          "scout-skeptic/SKILL.md",
+          "skill-routing/SKILL.md",
+          "skill-routing/routing-fixtures.json"
+        ],
+        "outputs": [
+          "Removed source directories",
+          "Updated source references"
+        ],
+        "verification": [
+          "rg -n \"code-housekeeping|codebase-review\" README.md scout-skeptic/SKILL.md skill-routing/SKILL.md skill-routing/routing-fixtures.json"
+        ],
+        "depends_on": []
+      },
+      {
+        "id": "task-runtime",
+        "title": "Remove installed runtime skills and registry entries",
+        "status": "done",
+        "objective": "Delete the corresponding installed skill directories under ~/.codex and remove stale sources.json registry entries for the retired skills.",
+        "inputs": [
+          "two retired installed skill directories",
+          "~/.codex/skills/sources.json"
+        ],
+        "outputs": [
+          "Removed runtime skill directories",
+          "Updated runtime sources.json"
+        ],
+        "verification": [
+          "rg -n \"code-housekeeping|codebase-review\" /Users/xavier/.codex/skills/scout-skeptic/SKILL.md /Users/xavier/.codex/skills/skill-routing/SKILL.md /Users/xavier/.codex/skills/skill-routing/routing-fixtures.json /Users/xavier/.codex/skills/sources.json"
+        ],
+        "depends_on": [
+          "task-source"
+        ]
+      },
+      {
+        "id": "task-verify",
+        "title": "Verify deletion state",
+        "status": "done",
+        "objective": "Confirm the deleted skills are absent, references are cleaned up where intended, and the lane remains syntactically clean.",
+        "inputs": [
+          "source repo grep results",
+          "runtime grep results",
+          "git diff --check"
+        ],
+        "outputs": [
+          "Clean verification evidence for source and runtime removal"
+        ],
+        "verification": [
+          "git diff --check",
+          "rg -n \"code-housekeeping|codebase-review\" README.md scout-skeptic/SKILL.md skill-routing/SKILL.md skill-routing/routing-fixtures.json /Users/xavier/.codex/skills/scout-skeptic/SKILL.md /Users/xavier/.codex/skills/skill-routing/SKILL.md /Users/xavier/.codex/skills/skill-routing/routing-fixtures.json /Users/xavier/.codex/skills/sources.json"
+        ],
+        "depends_on": [
+          "task-runtime"
+        ]
+      }
+    ],
+    "replan_policy": {
+      "owner": "plan-writing",
+      "triggers": [
+        "Another checked-in skill or runtime registry surface still depends on the removed skills",
+        "Deleting the runtime directories requires a different updater workflow than direct removal"
+      ]
+    }
+  },
+  "state": {
+    "phase": "done",
+    "current_task_id": null,
+    "next_task_id": null,
+    "blockers": [],
+    "evidence": [
+      "Reused the active chore/routing-trigger-hardening lane because it already carries the adjacent routing cleanup and keeps source edits isolated from the clean primary checkout.",
+      "Confirmed both source and installed runtime still contained the two retired skill directories before deletion.",
+      "Found live references in source README/scout-skeptic/skill-routing and runtime sources.json that had to be cleaned up alongside directory deletion.",
+      "Removed the two retired source skill directories from the lane and deleted the repo-local dev/codebase-review validation directory.",
+      "Removed the matching installed ~/.codex skill directories and pruned their sources.json registry entries.",
+      "Verification passed: python3 dev/skill-routing/run_smoke.py --runtime-policy /Users/xavier/.codex/skills/skill-routing/child-skill-policy.toml --runtime-skills-root /Users/xavier/.codex/skills, python3 dev/scout-skeptic/run_smoke.py, git diff --check, and targeted rg checks over the remaining source/runtime routing surfaces."
+    ],
+    "last_updated": "2026-03-18T11:53:09Z",
+    "replan_reason": null,
+    "context_snapshot": {
+      "runtime_skills_root": "/Users/xavier/.codex/skills",
+      "workspace_repo": "/Users/xavier/code/trusted/y/hack-ink/skills/.workspaces/chore-routing-trigger-hardening"
+    }
+  }
+}
