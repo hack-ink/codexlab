@@ -8,7 +8,7 @@ description: Use after a PR has review feedback on GitHub. Owns unresolved-threa
 ## Scope
 
 - This skill owns the GitHub review-fix loop after a PR already exists.
-- This skill reads unresolved review comments, evaluates them with `receiving-code-review`, fixes valid issues, reruns verification, replies in-thread, and resolves only the threads that are actually complete.
+- This skill reads unresolved review comments, evaluates them with technical rigor, fixes valid issues, reruns verification, replies in-thread, and resolves only the threads that are actually complete.
 - This skill does not request review, merge, close out trackers, or clean up workspaces.
 
 ## Inputs
@@ -28,7 +28,12 @@ description: Use after a PR has review feedback on GitHub. Owns unresolved-threa
 
 ## Hard gates
 
-- Judge each comment with `receiving-code-review` before touching code.
+- Judge each comment before touching code:
+  - read the full thread before reacting
+  - restate the technical requirement in your own words
+  - verify the suggestion against the codebase, tests, and requirements
+  - decide: fix now, push back with technical reasoning, or ask for clarification
+- External review feedback is input to evaluate, not an automatic order to follow.
 - Re-run fresh verification after every repair batch.
 - Reply in the GitHub thread, not as a top-level PR comment.
 - Resolve a thread only when all of these are true:
@@ -36,6 +41,7 @@ description: Use after a PR has review feedback on GitHub. Owns unresolved-threa
   - verification passed on that new state
   - the thread reply matches the fix that landed
 - Do not resolve when you are pushing back, asking for clarification, or still carrying unresolved work.
+- Do not use performative agreement in replies; answer with the fix, the question, or the technical pushback.
 
 ## Procedure
 
@@ -63,6 +69,7 @@ description: Use after a PR has review feedback on GitHub. Owns unresolved-threa
 - Fixes must be acknowledged in the comment thread they address.
 - Pushback must be technical and specific.
 - Clarification requests must keep the thread open.
+- If you were wrong after pushing back, correct the record briefly and continue with the fix.
 - Resolve is part of the repair contract, not an optional courtesy.
 
 ## Red flags

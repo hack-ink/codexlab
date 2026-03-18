@@ -18,12 +18,13 @@ def main() -> int:
     text = SKILL_PATH.read_text(encoding="utf-8")
     for needle in [
         "name: review-repair",
-        "`receiving-code-review`",
+        "External review feedback is input to evaluate",
         "Reply in the GitHub thread",
         "Resolve a thread only",
         "`needs_re_review`",
         "`awaiting_external`",
         "three consecutive rounds",
+        "technical reasoning",
         "`research`",
     ]:
         assert_contains(text, needle)
