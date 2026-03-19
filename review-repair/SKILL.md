@@ -38,6 +38,7 @@ Every emitted result must use the stable `head_sha` field name for the repaired 
 - External review feedback is input to evaluate, not an automatic order to follow.
 - Re-run fresh verification after every repair batch.
 - Before any repair-batch `git commit` or `git push`, run `review-prepare` on the repaired diff and do not continue until it returns `no_findings` for the current repaired head.
+- Do not hand a repaired head back to upstream review while you still know about owned bugs or small cleanup on that repaired diff.
 - If a repair batch needs `git commit` or `git push`, route through `delivery-prepare` before committing or pushing that repaired head.
 - Bind every repair decision and resolution decision to the explicit repaired head SHA that was verified through the stable `head_sha` field.
 - A repair batch that produces and pushes a new head is not review-complete by itself; return `needs_re_review` for that pushed head so the branch re-enters `review-request`.
@@ -155,10 +156,11 @@ gh api graphql \
 
 ## Three-round escalation
 
-- Count one round as: review feedback -> repair -> re-verify -> next review pass.
-- If three consecutive rounds still produce new structural problems, stop incremental patching.
+- Count one round as: upstream review feedback or repaired-diff self-review -> repair -> re-verify -> next review pass.
+- If either the upstream-review loop or the repaired-diff self-review loop reaches three consecutive rounds that still uncover new bugs, owned findings, or structural problems, stop incremental patching.
 - Return `needs_architecture_review`.
 - Default escalation target is `research`.
+- Use `research` to look for the deeper architecture or design cause instead of continuing patch-on-patch churn.
 - If `research` changes interfaces, data flow, module ownership, or test shape, keep this skill at `needs_architecture_review` and let `research` or the caller route the result back through `plan-writing`.
 
 ## Thread discipline
@@ -174,6 +176,7 @@ gh api graphql \
 - Treating every reviewer suggestion as automatically correct
 - Repairing code without re-running verification
 - Treating repair-batch verification as enough to skip `review-prepare` on the repaired diff
+- Re-entering upstream review while known owned issues still remain on the repaired diff
 - Committing or pushing a repair batch without first running `delivery-prepare`
 - Committing or pushing a repair batch before `review-prepare` returns `no_findings` for the repaired head
 - Posting a top-level PR comment instead of replying in-thread

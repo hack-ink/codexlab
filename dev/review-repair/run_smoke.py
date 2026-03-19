@@ -36,6 +36,7 @@ def main() -> int:
         "Resolve a thread only",
         "resolve it through GitHub instead of leaving manual cleanup behind",
         "Before any repair-batch `git commit` or `git push`, run `review-prepare` on the repaired diff and do not continue until it returns `no_findings` for the current repaired head.",
+        "Do not hand a repaired head back to upstream review while you still know about owned bugs or small cleanup on that repaired diff.",
         "If a repair batch needs `git commit` or `git push`, route through `delivery-prepare` before committing or pushing that repaired head.",
         "A repair batch that produces and pushes a new head is not review-complete by itself; return `needs_re_review` for that pushed head so the branch re-enters `review-request`.",
         "`gh api graphql`",
@@ -43,6 +44,9 @@ def main() -> int:
         "`needs_re_review`",
         "`awaiting_external`",
         "three consecutive rounds",
+        "upstream review feedback or repaired-diff self-review",
+        "new bugs, owned findings, or structural problems",
+        "deeper architecture or design cause",
         "technical reasoning",
         "`research`",
     ]:

@@ -33,6 +33,9 @@ def main() -> int:
         "Do not proceed to PR creation",
         "including after `review-repair` changes the branch",
         "PR head refresh",
+        "Do not output `no_findings` while any known owned issue remains on the current head",
+        "External review is for blind spots and disagreement, not for handing off known owned cleanup",
+        "new bugs, owned findings, or structural problems",
     ]:
         assert_contains(text, needle)
     print("OK: review-prepare contract captures the pre-PR self-review loop")

@@ -32,6 +32,9 @@ def main() -> int:
         "`blocked`",
         "does not need an `@codex review` comment because Codex review is requested automatically",
         "request the next review round with an `@codex review` comment",
+        "no known owned issues intentionally left for external review",
+        "Do not request review on a head while you already know about owned bugs or small cleanup you could fix locally",
+        "does not exist to outsource known owned cleanup to external review",
         "does not repair comments",
     ]:
         assert_contains(text, needle)

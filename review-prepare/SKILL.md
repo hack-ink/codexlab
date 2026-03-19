@@ -8,7 +8,7 @@ description: Use before creating or refreshing a PR head, including after `revie
 ## Scope
 
 - This skill owns the PR-preparation self-review loop.
-- This skill reviews the actual diff, fixes review findings, reruns verification, and decides whether the branch is clean enough to enter PR review.
+- This skill reviews the actual diff, fixes review findings, reruns verification, and decides whether the branch is clean enough to enter or re-enter upstream review.
 - This skill does not create a PR, request external review, handle GitHub threads, merge, or close out trackers.
 
 ## Inputs
@@ -33,6 +33,8 @@ Every emitted result must use the stable `head_sha` field name for the reviewed 
 - Review the actual diff, not memory of the implementation.
 - Every fix round must be followed by fresh verification.
 - Do not output `no_findings` without fresh verification evidence for the current branch state.
+- Do not output `no_findings` while any known owned issue remains on the current head, even if it is a small or obvious fix.
+- External review is for blind spots and disagreement, not for handing off known owned cleanup.
 - Bind every decision to the explicit reviewed head SHA for that branch state through the stable `head_sha` field.
 - Do not proceed to PR creation, PR head refresh, or `review-request` until this skill returns `no_findings`.
 
@@ -56,7 +58,7 @@ Every emitted result must use the stable `head_sha` field name for the reviewed 
 ## Three-round escalation
 
 - Count one round as: review -> fix -> re-verify -> re-review.
-- If three consecutive rounds still produce new structural findings, stop patch-on-patch repair.
+- If three consecutive rounds still produce new bugs, owned findings, or structural problems, stop patch-on-patch repair.
 - Return `needs_architecture_review`.
 - Default escalation target is `research`, not `research-pro`.
 - If `research` recommends structural changes to module boundaries, interfaces, data flow, or tests, keep this skill at `needs_architecture_review` and let `research` or the caller hand the result back to `plan-writing`.
@@ -71,6 +73,7 @@ Every emitted result must use the stable `head_sha` field name for the reviewed 
 ## Red flags
 
 - Calling the branch "ready" because tests happen to pass while the diff still contains obvious review debt
+- Returning `no_findings` while known owned issues are still queued for external review
 - Creating or refreshing a PR head before self-review reaches `no_findings`
 - Carrying GitHub thread behavior into this skill
 - Continuing beyond three churn rounds without escalating to `research`

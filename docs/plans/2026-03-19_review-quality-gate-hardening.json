@@ -1,0 +1,134 @@
+{
+  "spec": {
+    "schema": "plan/1",
+    "plan_id": "2026-03-19-review-quality-gate-hardening",
+    "goal": "Harden the review workflow so no known owned issues are intentionally handed to external review, and escalate to research when either self-review or upstream review still finds bugs after three rounds.",
+    "success_criteria": [
+      "review-prepare defines `no_findings` as no known owned issues remaining on the current head before upstream review or PR head refresh",
+      "review-request refuses to act as an outsourcing step for known owned issues and explicitly assumes review-prepare is clean in that stronger sense",
+      "review-repair preserves the repaired-diff self-review gate and escalates to research when either the post-repair self-review loop or the upstream-review loop still finds bugs after three rounds",
+      "home/codex/AGENTS.md states that external review is for blind spots rather than known owned cleanup and that either review loop finding bugs after three rounds escalates to research",
+      "source and nix smoke coverage fail if those tougher review-quality rules regress",
+      "installed runtime skills and live ~/.codex/AGENTS.md are synced after the source changes",
+      "focused verification passes after the update"
+    ],
+    "constraints": [
+      "Keep the change scoped to review workflow contracts, AGENTS guidance, and their smoke coverage",
+      "Do not rename skills or add a new orchestration skill",
+      "Use the already-active skills workspace lane and existing nix branch",
+      "Translate the user's `perfect` requirement into objective contract language around known owned issues and repeated bug-finding loops"
+    ],
+    "defaults": {
+      "skills_workspace": "/Users/xavier/code/trusted/y/hack-ink/skills/.workspaces/chore-review-repair-delivery-gate",
+      "skills_repo_root": "/Users/xavier/code/trusted/y/hack-ink/skills",
+      "nix_repo_root": "/Users/xavier/Documents/nix"
+    },
+    "tasks": [
+      {
+        "id": "task-1",
+        "title": "Tighten source review contracts",
+        "status": "done",
+        "objective": "Update review-prepare, review-request, and review-repair so upstream review only sees heads without known owned issues and either review loop escalates to research after three bug-finding rounds.",
+        "inputs": [
+          "review-prepare/SKILL.md",
+          "review-request/SKILL.md",
+          "review-repair/SKILL.md"
+        ],
+        "outputs": [
+          "Updated review workflow contracts"
+        ],
+        "verification": [
+          "python3 dev/review-prepare/run_smoke.py",
+          "python3 dev/review-request/run_smoke.py",
+          "python3 dev/review-repair/run_smoke.py"
+        ],
+        "depends_on": []
+      },
+      {
+        "id": "task-2",
+        "title": "Lock the tougher rules in smoke coverage",
+        "status": "done",
+        "objective": "Update skills-repo and nix source smokes so regressions in the no-known-owned-issues gate and the broader research-escalation trigger fail locally.",
+        "inputs": [
+          "dev/review-prepare/run_smoke.py",
+          "dev/review-request/run_smoke.py",
+          "dev/review-repair/run_smoke.py",
+          "/Users/xavier/Documents/nix/dev/smoke/codex/run_scout_skeptic_source_smoke.py"
+        ],
+        "outputs": [
+          "Stronger local smoke coverage for the hardened review-quality gate"
+        ],
+        "verification": [
+          "python3 dev/review-prepare/run_smoke.py",
+          "python3 dev/review-request/run_smoke.py",
+          "python3 dev/review-repair/run_smoke.py",
+          "python3 /Users/xavier/Documents/nix/dev/smoke/codex/run_scout_skeptic_source_smoke.py"
+        ],
+        "depends_on": [
+          "task-1"
+        ]
+      },
+      {
+        "id": "task-3",
+        "title": "Propagate to global guidance and runtime",
+        "status": "done",
+        "objective": "Update nix home/codex AGENTS guidance, then sync the installed review skills and live ~/.codex/AGENTS.md so the hardened quality gate is active in the runtime.",
+        "inputs": [
+          "/Users/xavier/Documents/nix/home/codex/AGENTS.md",
+          "/Users/xavier/.codex/skills/review-prepare/SKILL.md",
+          "/Users/xavier/.codex/skills/review-request/SKILL.md",
+          "/Users/xavier/.codex/skills/review-repair/SKILL.md",
+          "/Users/xavier/.codex/AGENTS.md"
+        ],
+        "outputs": [
+          "Updated nix source guidance",
+          "Updated installed runtime skills and AGENTS"
+        ],
+        "verification": [
+          "python3 dev/review-prepare/run_smoke.py",
+          "python3 dev/review-request/run_smoke.py",
+          "python3 dev/review-repair/run_smoke.py",
+          "python3 /Users/xavier/Documents/nix/dev/smoke/codex/run_scout_skeptic_source_smoke.py",
+          "git diff --check",
+          "git -C /Users/xavier/Documents/nix diff --check"
+        ],
+        "depends_on": [
+          "task-1",
+          "task-2"
+        ]
+      }
+    ],
+    "replan_policy": {
+      "owner": "plan-writing",
+      "triggers": [
+        "The quality gate needs a new workflow skill instead of tightening the existing review contracts",
+        "The user's quality bar cannot be expressed objectively enough for a stable contract without deeper workflow redesign",
+        "Runtime sync requires broader installer or nix changes beyond the existing hot-sync and darwin-rebuild path"
+      ]
+    }
+  },
+  "state": {
+    "phase": "done",
+    "current_task_id": null,
+    "next_task_id": null,
+    "blockers": [],
+    "evidence": [
+      "2026-03-19: Updated review-prepare/SKILL.md so no_findings now means no known owned issues remain on the head and external review is for blind spots rather than known owned cleanup.",
+      "2026-03-19: Updated review-request/SKILL.md so it only applies after review-prepare is clean in that stronger sense and explicitly forbids using external review to outsource known owned cleanup.",
+      "2026-03-19: Updated review-repair/SKILL.md so repaired heads are not handed back upstream with known owned issues and either the repaired-diff self-review loop or the upstream-review loop escalates to research after three bug-finding rounds.",
+      "2026-03-19: Updated /Users/xavier/Documents/nix/home/codex/AGENTS.md and /Users/xavier/Documents/nix/dev/smoke/codex/run_scout_skeptic_source_smoke.py so the global workflow treats external review as blind-spot detection and escalates to research after three bug-finding rounds in either review loop.",
+      "2026-03-19: Verified with python3 dev/review-prepare/run_smoke.py, python3 dev/review-request/run_smoke.py, python3 dev/review-repair/run_smoke.py, python3 /Users/xavier/Documents/nix/dev/smoke/codex/run_scout_skeptic_source_smoke.py, git diff --check, and git -C /Users/xavier/Documents/nix diff --check.",
+      "2026-03-19: Hot-synced review-prepare, review-request, and review-repair into /Users/xavier/.codex/skills and ran sudo -n -H darwin-rebuild switch --flake /Users/xavier/Documents/nix#acg-box so live ~/.codex/AGENTS.md now carries the hardened review-quality gate."
+    ],
+    "last_updated": "2026-03-19T07:00:44Z",
+    "replan_reason": null,
+    "context_snapshot": {
+      "local_checkpoint": {
+        "current_theory": "The workflow now self-reviews repaired heads before push, but it still lacks explicit language that external review should not receive known owned issues and that either review loop finding bugs beyond three rounds should escalate to research.",
+        "contradictory_evidence": "review-prepare and review-repair already have three-round escalation text and the repaired-diff self-review gate.",
+        "missing_evidence": "Need contract wording and smoke coverage that turn the user's `don't leave little issues for upstream review` requirement into a stable no-known-owned-issues gate across initial request and repair re-request paths.",
+        "next_action": "Patch the review skills, AGENTS, and smokes, then sync the live runtime guidance."
+      }
+    }
+  }
+}
