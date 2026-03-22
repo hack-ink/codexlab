@@ -32,23 +32,23 @@ def main() -> int:
         "`pr_ref`",
         "`evidence`",
         "repaired head SHA",
-        "Reply in the GitHub thread",
+        "Reply in the review thread",
         "Resolve a thread only",
         "resolve it through GitHub instead of leaving manual cleanup behind",
         "Before any repair-batch `git commit` or `git push`, run `review-prepare` on the repaired diff and do not continue until it returns `no_findings` for the current repaired head.",
-        "Do not hand a repaired head back to upstream review while you still know about owned bugs or small cleanup on that repaired diff.",
+        "Do not leave a repaired head carrying known owned bugs or small cleanup while treating external review as the next line of defense.",
         "If a repair batch needs `git commit` or `git push`, route through `delivery-prepare` before committing or pushing that repaired head.",
-        "A repair batch that produces and pushes a new head is not review-complete by itself; return `needs_re_review` for that pushed head so the branch re-enters `review-request`.",
+        "A repair batch that produces and pushes a new head is not complete by itself; keep ownership until the repaired diff is verified, the thread replies are posted, and every fixed thread is resolved.",
         "`gh api graphql`",
         "use `path`, `line` / `startLine`, and the latest comment `url` or body to match the right `$THREAD_ID` before resolving",
-        "`needs_re_review`",
         "`awaiting_external`",
         "three consecutive rounds",
-        "upstream review feedback or repaired-diff self-review",
+        "external review feedback or repaired-diff self-review",
         "new bugs, owned findings, or structural problems",
         "deeper architecture or design cause",
         "technical reasoning",
         "`research`",
+        "Treating fixed threads as done without resolving them after the repaired state is verified",
     ]:
         assert_contains(text, needle)
     assert_block(
@@ -65,7 +65,7 @@ def main() -> int:
         If the repair batch needs commit or push:
            - after `review-prepare` is clean for the repaired head, run `delivery-prepare` before the commit or push
            - push the repaired head
-           - treat that pushed head as `needs_re_review` so `review-request` can request a fresh review for the new head
+           - continue owning the external-review repair loop for that new head instead of assuming another request step
         """,
     )
     assert_block(

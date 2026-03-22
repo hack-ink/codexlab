@@ -13,7 +13,6 @@ COUPLED_SKILL_NEEDLES = [
     "`delivery-closeout`",
     "`workspace-reconcile`",
     "`review-prepare`",
-    "`review-request`",
     "`review-repair`",
     "`pr-land`",
 ]

@@ -18,6 +18,7 @@ def main() -> int:
     text = SKILL_PATH.read_text(encoding="utf-8")
     for needle in [
         "name: review-prepare",
+        "primary self-review gate for branch readiness",
         "actual diff",
         "machine-readable result envelope",
         "`status`",
@@ -33,9 +34,13 @@ def main() -> int:
         "Do not proceed to PR creation",
         "including after `review-repair` changes the branch",
         "PR head refresh",
+        "adversarial reviewer lens",
+        "regression risk, missing tests, docs/config drift, and operator-facing fallout",
+        "merge readiness",
         "Do not output `no_findings` while any known owned issue remains on the current head",
-        "External review is for blind spots and disagreement, not for handing off known owned cleanup",
+        "External review is input to validate after self review, not a place to hand off known owned cleanup",
         "new bugs, owned findings, or structural problems",
+        "Returning `no_findings` without a fresh adversarial reviewer pass on the current diff",
     ]:
         assert_contains(text, needle)
     print("OK: review-prepare contract captures the pre-PR self-review loop")

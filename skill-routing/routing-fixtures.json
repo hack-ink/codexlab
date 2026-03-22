@@ -95,27 +95,15 @@
       ]
     },
     {
-      "name": "pr review request routes to review request",
-      "prompt": "The PR already exists, the branch is pushed, and I need to request Codex review on the non-draft branch.",
-      "expect_primary_process_skills": [
-        "review-request"
-      ],
-      "expect_overlay_skills": [],
-      "policy_reason_needles": [
-        "After the PR exists and the branch is pushed, request Codex review -> `review-request`",
-        "The PR exists and needs Codex review requested"
-      ]
-    },
-    {
       "name": "github review repair routes to review repair",
-      "prompt": "Repair unresolved GitHub review comments in-thread, rerun verification, resolve the fixed threads, and tell me if another review round is needed.",
+      "prompt": "Repair unresolved PR review comments in-thread, rerun verification, validate whether the review findings are true, and resolve the fixed threads.",
       "expect_primary_process_skills": [
         "review-repair"
       ],
       "expect_overlay_skills": [],
       "policy_reason_needles": [
-        "When GitHub review comments arrive, repair them in-thread and resolve only verified fixes -> `review-repair`",
-        "These GitHub review comments need fixing and thread resolution"
+        "When PR review comments arrive, validate them, repair verified issues, and resolve only verified fixes -> `review-repair`",
+        "These PR review comments need fixing and thread resolution"
       ]
     },
     {

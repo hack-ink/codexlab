@@ -77,7 +77,6 @@ description: Use at the start of a task, before clarifying questions, or before 
 - `workspaces`
 - `workspace-reconcile`
 - `review-prepare`
-- `review-request`
 - `review-repair`
 - `pr-land`
 
@@ -96,8 +95,7 @@ Examples:
 - "Write the implementation plan" or a task already running in Plan mode -> load the planning workflow before any code changes.
 - "Execute this plan" or "continue from `docs/plans/...`" -> load the workflow that treats the saved plan as the execution entrypoint.
 - "Before I open or refresh the PR, self-review this diff" -> load `review-prepare`.
-- "The PR exists and needs Codex review requested" -> load `review-request`.
-- "These GitHub review comments need fixing and thread resolution" -> load `review-repair`.
+- "These PR review comments need fixing and thread resolution" -> load `review-repair`.
 - "This PR may be ready to land" -> load `pr-land`.
 - "Build a React dashboard in this repo" -> load `workspaces` first, then the smallest set of additional process and implementation skills that match the task.
 - "This conflict came from multiple `.workspaces/*` lanes" -> load `workspace-reconcile`.
@@ -108,8 +106,7 @@ Examples:
 - Start or resume non-read-only implementation work -> `workspaces`
 - Multiple `.workspaces/*` lanes conflict and one must survive -> `workspace-reconcile`
 - Before creating or updating a PR, run the pre-PR self-review loop -> `review-prepare`
-- After the PR exists and the branch is pushed, request Codex review -> `review-request`
-- When GitHub review comments arrive, repair them in-thread and resolve only verified fixes -> `review-repair`
+- When PR review comments arrive, validate them, repair verified issues, and resolve only verified fixes -> `review-repair`
 - When the PR may be mergeable, check readiness and land it without swallowing closeout -> `pr-land`
 
 ## Follow-through

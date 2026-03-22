@@ -10,4 +10,4 @@ From the repo root:
 python3 dev/review-repair/run_smoke.py
 ```
 
-The smoke validates the checked-in GitHub review-repair loop contract, including in-thread replies, conditional resolve, and bounded escalation.
+The smoke validates the checked-in external-review repair loop contract, including truth-checking review claims, in-thread replies, thread resolution, and bounded escalation.

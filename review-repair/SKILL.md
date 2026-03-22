@@ -7,7 +7,7 @@ description: Use after a PR has review feedback on GitHub. Owns unresolved-threa
 
 ## Scope
 
-- This skill owns the GitHub review-fix loop after a PR already exists.
+- This skill owns the external-review repair loop after a PR already exists.
 - This skill reads unresolved review comments, evaluates them with technical rigor, fixes valid issues, reruns verification, replies in-thread, and resolves only the threads that are actually complete.
 - This skill does not request review, merge, close out trackers, or clean up workspaces.
 
@@ -21,7 +21,7 @@ description: Use after a PR has review feedback on GitHub. Owns unresolved-threa
 ## Outputs
 
 - Emit a machine-readable result envelope with these required fields:
-  - `status`: one of `repaired`, `no_action`, `needs_re_review`, `awaiting_external`, `needs_architecture_review`, `blocked`
+  - `status`: one of `repaired`, `no_action`, `awaiting_external`, `needs_architecture_review`, `blocked`
   - `head_sha`: exact repaired or inspected head SHA that this result applies to
   - `pr_ref`: stable PR identity such as URL or number
   - `evidence`: ordered list of verification, review-thread, or blocker evidence strings for that head; use `[]` when none apply
@@ -38,11 +38,11 @@ Every emitted result must use the stable `head_sha` field name for the repaired 
 - External review feedback is input to evaluate, not an automatic order to follow.
 - Re-run fresh verification after every repair batch.
 - Before any repair-batch `git commit` or `git push`, run `review-prepare` on the repaired diff and do not continue until it returns `no_findings` for the current repaired head.
-- Do not hand a repaired head back to upstream review while you still know about owned bugs or small cleanup on that repaired diff.
+- Do not leave a repaired head carrying known owned bugs or small cleanup while treating external review as the next line of defense.
 - If a repair batch needs `git commit` or `git push`, route through `delivery-prepare` before committing or pushing that repaired head.
 - Bind every repair decision and resolution decision to the explicit repaired head SHA that was verified through the stable `head_sha` field.
-- A repair batch that produces and pushes a new head is not review-complete by itself; return `needs_re_review` for that pushed head so the branch re-enters `review-request`.
-- Reply in the GitHub thread, not as a top-level PR comment.
+- A repair batch that produces and pushes a new head is not complete by itself; keep ownership until the repaired diff is verified, the thread replies are posted, and every fixed thread is resolved.
+- Reply in the review thread, not as a top-level PR comment.
 - Resolve a thread only when all of these are true:
   - the code is actually fixed
   - verification passed on that new state
@@ -67,7 +67,7 @@ Every emitted result must use the stable `head_sha` field name for the repaired 
 6. If the repair batch needs commit or push:
    - after `review-prepare` is clean for the repaired head, run `delivery-prepare` before the commit or push
    - push the repaired head
-   - treat that pushed head as `needs_re_review` so `review-request` can request a fresh review for the new head
+   - continue owning the external-review repair loop for that new head instead of assuming another request step
 7. Reply in-thread for every addressed comment.
 8. Resolve only the threads that satisfy the hard gates.
    - Default CLI path:
@@ -75,10 +75,10 @@ Every emitted result must use the stable `head_sha` field name for the repaired 
      - use `path`, `line` / `startLine`, and the latest comment `url` or body to match the right `$THREAD_ID` before resolving
      - resolve a completed thread with `resolveReviewThread`
      - reopen a thread later with `unresolveReviewThread` if new evidence shows the fix was incomplete
-9. If the branch head changes during the loop, stop carrying prior repair state forward implicitly and return `needs_re_review` for the new head.
+9. If the branch head changes during the loop, stop carrying prior repair state forward implicitly and bind the next result only after re-reading the new head.
 10. Emit the machine-readable result envelope with `status`, `head_sha`, `pr_ref`, and `evidence` for that branch state.
 
-## GitHub thread commands
+## Review Thread Commands
 
 Use these default commands unless the repository documents a stricter helper or wrapper.
 
@@ -156,8 +156,8 @@ gh api graphql \
 
 ## Three-round escalation
 
-- Count one round as: upstream review feedback or repaired-diff self-review -> repair -> re-verify -> next review pass.
-- If either the upstream-review loop or the repaired-diff self-review loop reaches three consecutive rounds that still uncover new bugs, owned findings, or structural problems, stop incremental patching.
+- Count one round as: external review feedback or repaired-diff self-review -> repair -> re-verify -> next review pass.
+- If either the external-review loop or the repaired-diff self-review loop reaches three consecutive rounds that still uncover new bugs, owned findings, or structural problems, stop incremental patching.
 - Return `needs_architecture_review`.
 - Default escalation target is `research`.
 - Use `research` to look for the deeper architecture or design cause instead of continuing patch-on-patch churn.
@@ -176,10 +176,10 @@ gh api graphql \
 - Treating every reviewer suggestion as automatically correct
 - Repairing code without re-running verification
 - Treating repair-batch verification as enough to skip `review-prepare` on the repaired diff
-- Re-entering upstream review while known owned issues still remain on the repaired diff
+- Leaving external review to rediscover known owned issues on the repaired diff
 - Committing or pushing a repair batch without first running `delivery-prepare`
 - Committing or pushing a repair batch before `review-prepare` returns `no_findings` for the repaired head
 - Posting a top-level PR comment instead of replying in-thread
 - Leaving a verified completed thread unresolved because the resolve step required `gh api graphql`
 - Resolving a thread before the fix is verified
-- Requesting another review round from inside this skill instead of returning `needs_re_review`
+- Treating fixed threads as done without resolving them after the repaired state is verified
