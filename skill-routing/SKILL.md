@@ -65,7 +65,7 @@ description: Use at the start of a task, before clarifying questions, or before 
 - Distinguish between primary workflow skills and additive overlay skills.
 - A primary workflow skill determines the main execution approach.
 - An additive overlay skill improves routing, context isolation, verification, or bounded parallel evidence gathering without taking ownership of the task.
-- `scout-skeptic` is an additive overlay skill. It uses a checkpoint pattern and may run locally or, when warranted, dispatch narrow read-only scout/skeptic child-agent objectives.
+- `scout-skeptic` is an additive overlay skill. It uses a checkpoint pattern, stays local by default, and dispatches narrow read-only scout/skeptic child-agent objectives only when the first probe still leaves multiple independent read-only questions that the main thread can exploit in parallel.
 - Apply the "smallest set" rule within a class, not across all skills globally.
 - Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies.
 
@@ -90,7 +90,7 @@ description: Use at the start of a task, before clarifying questions, or before 
 
 Examples:
 
-- "Fix this bug" -> load debugging workflow skills before language- or framework-specific skills; if multiple plausible causes or independent evidence questions remain after the first probe, also load `scout-skeptic`.
+- "Fix this bug" -> load debugging workflow skills before language- or framework-specific skills; if the first probe still leaves multiple independent read-only questions, plausible causes, or missing tests worth challenging, also load `scout-skeptic`.
 - "Implement this feature in this repo" -> load `workspaces` first so the work starts in an isolated `.workspaces/*` lane.
 - "I have two unrelated implementation tasks in the same repo" -> load `workspaces` first so each task gets its own isolated `.workspaces/*` lane.
 - "Write the implementation plan" or a task already running in Plan mode -> load the planning workflow before any code changes.

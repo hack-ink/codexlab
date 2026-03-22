@@ -3,7 +3,7 @@
   "fixtures": [
     {
       "name": "debugging stacks overlay when evidence branches",
-      "prompt": "Investigate a flaky integration test with two plausible root causes across logs and several files, then challenge the current theory before changing code.",
+      "prompt": "Investigate a flaky integration test where the first probe still leaves two independent read-only questions across logs and several files, then challenge the current theory before changing code.",
       "expect_primary_process_skills": [
         "systematic-debugging"
       ],
@@ -12,7 +12,7 @@
       ],
       "policy_reason_needles": [
         "Fix this bug",
-        "multiple plausible hypotheses, regression risks, or missing tests worth challenging",
+        "At least two independent read-only questions, hypotheses, or evidence gaps remain.",
         "Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies."
       ]
     },
@@ -27,7 +27,7 @@
       ],
       "policy_reason_needles": [
         "read-only review pass before trusting a fix, explanation, or closeout claim",
-        "multiple plausible hypotheses, regression risks, or missing tests worth challenging",
+        "The main thread still has direct work, synthesis, or another verification step to do while the child agents run.",
         "Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies."
       ]
     },

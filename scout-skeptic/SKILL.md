@@ -1,6 +1,6 @@
 ---
 name: scout-skeptic
-description: "Use after a short local probe when a non-trivial task still has multiple files, plausible causes, or verification risks. Run a scout/skeptic checkpoint to gather evidence and challenge the current theory; use read-only scout/skeptic child agents only when parallel evidence gathering will materially help, otherwise run the checkpoint locally while the main thread keeps implementation ownership."
+description: "Use after a short local probe when a non-trivial task still has multiple files, plausible causes, or verification risks. Run a scout/skeptic checkpoint to gather evidence and challenge the current theory; use threshold-based read-only scout/skeptic child-agent fanout only when the probe still leaves multiple independent read-only questions, otherwise run the checkpoint locally while the main thread keeps implementation ownership."
 ---
 
 # Scout-Skeptic
@@ -22,10 +22,25 @@ Use the `scout-skeptic` skill as an additive overlay for one task when a short l
 
 - The main thread owns the task from start to finish.
 - `scout` and `skeptic` are read-only checkpoint roles.
-- When parallel evidence gathering will materially help, dispatch them as narrow read-only child-agent objectives.
+- Use child-agent fanout as a thresholded mechanism, not a vague preference.
+- When the fanout threshold is met, dispatch narrow read-only child-agent objectives.
 - When child agents are unnecessary or unavailable, run the same scout/skeptic passes locally in the main thread.
 - They must not edit repo content, delegate further, or take implementation ownership.
 - If either pass concludes that code should change, hand that conclusion back to the main thread.
+
+## Fanout threshold
+
+Spawn child-agent objectives only when all of these are true after the first short probe:
+
+- At least two independent read-only questions, hypotheses, or evidence gaps remain.
+- Each question can be phrased as one narrow objective whose output would change the next main-thread decision.
+- The objectives do not overlap, and one can be framed as `scout` evidence gathering while another can be framed as `skeptic` critique.
+- The main thread still has direct work, synthesis, or another verification step to do while the child agents run.
+
+Default first round shape when the threshold is met:
+
+- Spawn one `scout` objective and one `skeptic` objective.
+- Keep each objective narrow enough that the child agent does not need to reconstruct the whole task.
 
 ## Use a `scout` pass when
 
@@ -39,19 +54,21 @@ Use the `scout-skeptic` skill as an additive overlay for one task when a short l
 - You need someone to look for missed edge cases, missing tests, missing evidence, or regression risks.
 - You want a read-only review pass before trusting a fix, explanation, or closeout claim.
 
-## Do not create child-agent objectives when
+Do not spawn child-agent objectives when any of these are true:
 
 - A short local probe by the main thread will answer the question.
+- Only one blocking read-only question remains.
 - The subtask would require repo edits or sustained implementation ownership.
-- the scout/skeptic passes would duplicate the same objective.
+- The main thread would mostly wait on the result instead of continuing direct work or synthesis.
 - The output would not materially change the next main-thread step.
+- The objectives would duplicate each other or would not materially change the next decision.
 
 ## One realistic use
 
 - Suspected flaky test regression in one feature area:
   - Run a `scout` pass to inspect the failing paths, logs, or test output and decide whether the current theory has direct evidence.
   - Run a `skeptic` pass to challenge that theory and list alternative causes, missing tests, or missing evidence.
-  - If the runtime and task shape justify parallelism, dispatch those passes as separate read-only child-agent objectives; otherwise do them locally in sequence.
+  - If the first probe still leaves at least two independent read-only questions, dispatch those passes as separate read-only child-agent objectives; otherwise do them locally in sequence.
   - The main thread stays the only implementation owner and keeps working directly once enough evidence exists.
 
 ## Scout-Skeptic round
@@ -67,7 +84,9 @@ Use the `scout-skeptic` skill as an additive overlay for one task when a short l
 
 ## Local checkpoint fallback
 
-When child-agent fanout is unavailable, unnecessary, or not worth the overhead, run the checkpoint locally instead of skipping it.
+When child-agent fanout is unavailable, unnecessary, or below the threshold, run the checkpoint locally instead of skipping it.
+
+When using the local fallback, say which threshold failed so the no-fanout decision is inspectable.
 
 Treat the local checkpoint as complete only when you record all four items:
 

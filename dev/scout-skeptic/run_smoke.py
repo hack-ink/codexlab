@@ -51,11 +51,47 @@ def assert_scout_skeptic_skill() -> None:
     assert_contains(text, "scout", label="scout-skeptic skill")
     assert_contains(text, "skeptic", label="scout-skeptic skill")
     assert_contains(text, "additive overlay", label="scout-skeptic skill")
+    assert_contains(
+        text,
+        "thresholded mechanism, not a vague preference",
+        label="scout-skeptic skill",
+    )
+    assert_contains(text, "## Fanout threshold", label="scout-skeptic skill")
+    assert_contains(
+        text,
+        "At least two independent read-only questions, hypotheses, or evidence gaps remain.",
+        label="scout-skeptic skill",
+    )
+    assert_contains(
+        text,
+        "The main thread still has direct work, synthesis, or another verification step to do while the child agents run.",
+        label="scout-skeptic skill",
+    )
+    assert_contains(
+        text,
+        "Spawn one `scout` objective and one `skeptic` objective.",
+        label="scout-skeptic skill",
+    )
+    assert_contains(
+        text,
+        "Only one blocking read-only question remains.",
+        label="scout-skeptic skill",
+    )
+    assert_contains(
+        text,
+        "The main thread would mostly wait on the result instead of continuing direct work or synthesis.",
+        label="scout-skeptic skill",
+    )
     assert_contains(text, "## Scout-Skeptic round", label="scout-skeptic skill")
     assert_contains(text, "bounded collect step", label="scout-skeptic skill")
     assert_contains(text, "not ready yet", label="scout-skeptic skill")
     assert_contains(text, "only missing evidence", label="scout-skeptic skill")
     assert_contains(text, "## Local checkpoint fallback", label="scout-skeptic skill")
+    assert_contains(
+        text,
+        "say which threshold failed",
+        label="scout-skeptic skill",
+    )
     assert_contains(text, "current theory or working plan", label="scout-skeptic skill")
     assert_contains(text, "strongest contradictory evidence, regression risk, or skeptic concern", label="scout-skeptic skill")
     assert_contains(text, "missing evidence or missing test", label="scout-skeptic skill")

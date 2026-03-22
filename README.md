@@ -4,7 +4,7 @@ This repository hosts reusable agent skills for Codex workflows.
 
 ## Available skills
 
-- `scout-skeptic` - additive checkpoint guidance for non-trivial tasks that still need multi-file evidence gathering, theory challenge, or verification pressure after a short probe, with optional read-only scout/skeptic child-agent execution when parallelism materially helps (`scout-skeptic/SKILL.md`).
+- `scout-skeptic` - additive checkpoint guidance for non-trivial tasks that still need multi-file evidence gathering, theory challenge, or verification pressure after a short probe, with threshold-based read-only scout/skeptic child-agent fanout when the probe still leaves multiple independent read-only questions (`scout-skeptic/SKILL.md`).
 - `dep-roll` - latest-compatible dependency-graph upgrade workflow for pnpm, Poetry, and Cargo, with X.Y manifest-range discipline, tooling-owned lock regeneration, verification, and trailing Dependabot reconciliation (`dep-roll/SKILL.md`).
 - `delivery-prepare` - producer stage of the shared machine-first delivery contract: local delivery checks plus a valid `delivery/1` payload with explicit authority, mode, and typed refs for downstream closeout (`delivery-prepare/SKILL.md`).
 - `delivery-closeout` - consumer stage of the shared machine-first delivery contract: reads a pushed anchor plus a `delivery/1` payload from git, stdin, or a file, treats Linear as the source of truth, and mirrors issue outcomes back to GitHub with comment plus open/close only (`delivery-closeout/SKILL.md`).
