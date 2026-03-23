@@ -11,7 +11,7 @@ This repository hosts reusable agent skills for Codex workflows.
 - `plan-writing` - producer stage of the shared machine-first planning contract: creates or revises persisted `plan/1` files under `docs/plans/YYYY-MM-DD_<feature-slug>.json`, with a single underscore after the date and a kebab-case feature slug, and owns strategy, task graph, defaults, and replanning policy (`plan-writing/SKILL.md`).
 - `plan-execution` - consumer stage of the shared machine-first planning contract: reads saved `plan/1` files, advances only runtime state, and blocks on missing or invalid saved authority instead of inferring execution intent from chat (`plan-execution/SKILL.md`).
 - `python-policy` - Python policy for runtime boundaries and project-configured quality gates, deferring to checked-in bootstrap and allowing documented isolated runtimes when required (`python-policy/SKILL.md`).
-- `research` - research/investigation workflow that reads existing materials, clarifies unknowns with the user, and makes evidence-backed recommendations with websearch (`research/SKILL.md`).
+- `research` - research/investigation workflow that reads existing materials, clarifies unknowns with the user, and makes evidence-backed recommendations with websearch, including escalation from repeated failed local attempts before the agent invents tricky workarounds (`research/SKILL.md`).
 - `research-pro` - consult ChatGPT Pro via chatgpt.com Projects for architecture/research decisions, with Pro thinking defaulting to Extended (use Standard/default only when requested), project-only memory set only when creating a new Project, and polling-aware handoff (`research-pro/SKILL.md`).
 - `review-loop` - shared bounded review -> fix -> verify -> re-review engine for concrete diffs or repaired branch states, with head-SHA binding and three-round escalation to `research` (`review-loop/SKILL.md`).
 - `review-prepare` - primary branch-readiness self-review wrapper around `review-loop`, mapping the shared review engine onto pre-PR go/no-go status (`review-prepare/SKILL.md`).
@@ -40,6 +40,7 @@ To add or update a skill:
 
 - This repo intentionally ships **skills only**.
 - Routing/push policy (if any) should live in your Codex home configuration (outside this repo).
+- If you want a global default such as "research before workaround loops," put that in your home `AGENTS.md`; this repo can only ship reusable skill-level guidance for that behavior.
 - `<skill-name>/SKILL.md` - required skill definition.
 - `<skill-name>/...` - installable runtime assets referenced by `SKILL.md` (scripts, templates, schemas, references).
 - `dev/<skill-name>/...` - repo-local smoke tests and maintainer validation helpers; these are not part of the installed skill contract.
