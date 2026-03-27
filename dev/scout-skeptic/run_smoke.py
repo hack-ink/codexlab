@@ -43,7 +43,7 @@ def assert_not_contains(text: str, needle: str, *, label: str) -> None:
 
 
 def assert_scout_skeptic_skill() -> None:
-    skill_path = REPO_ROOT / "scout-skeptic" / "SKILL.md"
+    skill_path = REPO_ROOT / ".codex" / "skills" / "scout-skeptic" / "SKILL.md"
     assert_exists(skill_path)
     text = read_text(skill_path)
     assert_contains(text, "name: scout-skeptic", label="scout-skeptic skill")
@@ -151,7 +151,7 @@ def assert_repo_docs() -> None:
 
 
 def assert_installable_docs_decoupled() -> None:
-    path = REPO_ROOT / "scout-skeptic" / "SKILL.md"
+    path = REPO_ROOT / ".codex" / "skills" / "scout-skeptic" / "SKILL.md"
     text = read_text(path)
     assert_not_contains(text, "helper", label=str(path))
     for needle in COUPLED_SKILL_NEEDLES:

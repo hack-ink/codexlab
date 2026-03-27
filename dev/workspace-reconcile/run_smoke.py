@@ -6,7 +6,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SKILL_PATH = REPO_ROOT / "workspace-reconcile" / "SKILL.md"
+SKILL_PATH = REPO_ROOT / ".codex" / "skills" / "workspace-reconcile" / "SKILL.md"
 
 
 def assert_contains(text: str, needle: str) -> None:

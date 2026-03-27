@@ -1,0 +1,76 @@
+approval_policy = "never"
+model = "gpt-5.4"
+# model_auto_compact_token_limit = 950_000
+# model_context_window = 1_000_000
+model_reasoning_effort = "high"
+personality = "pragmatic"
+plan_mode_reasoning_effort = "high"
+sandbox_mode = "danger-full-access"
+suppress_unstable_features_warning = true
+websearch = "cached"
+
+[agents]
+max_threads = 48
+max_depth = 1
+
+[agents.scout]
+description = "Scout: read-only child agent for exploration, repo probing, reproductions, and evidence gathering."
+config_file = "./agents/scout.toml"
+
+[agents.skeptic]
+description = "Skeptic: read-only child agent for critique, gap-finding, adversarial review, and verification."
+config_file = "./agents/skeptic.toml"
+
+[features]
+apply_patch_freeform = true
+artifact = true
+# child_agents_md = true
+codex_hooks = true
+code_mode = true
+enable_fanout = true
+# image_detail_original = true
+# image_generation = true
+memories = true
+multi_agent_v2 = true
+plugins = true
+realtime_conversation = true
+responses_websockets_v2 = true
+runtime_metrics = true
+tool_call_mcp_elicitation = true
+tool_suggest = true
+tui_app_server = true
+undo = true
+voice_transcription = true
+
+[mcp_servers.context7]
+url = "https://mcp.context7.com/mcp"
+bearer_token_env_var = "CONTEXT7_API_KEY"
+
+[mcp_servers.deepwiki]
+url = "https://mcp.devin.ai/mcp"
+bearer_token_env_var = "DEEPWIKI_API_KEY"
+
+[mcp_servers.figma]
+url = "https://mcp.figma.com/mcp"
+
+[mcp_servers.linear_hackink]
+url = "https://mcp.linear.app/mcp"
+bearer_token_env_var = "LINEAR_API_KEY_HACKINK"
+
+[mcp_servers.linear_helixbox]
+url = "https://mcp.linear.app/mcp"
+bearer_token_env_var = "LINEAR_API_KEY_HELIXBOX"
+
+[notice]
+hide_full_access_warning = true
+hide_rate_limit_model_nudge = true
+
+# [notice.model_migrations]
+# "gpt-5.4" = "gpt-5.4-codex"
+
+[tui]
+status_line = ["model-with-reasoning", "current-dir", "git-branch", "context-remaining", "five-hour-limit", "weekly-limit", "used-tokens", "codex-version"]
+theme = "tokyonight_night"
+
+[plugins."github@openai-curated"]
+enabled = true

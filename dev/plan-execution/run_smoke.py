@@ -9,12 +9,13 @@ import tempfile
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SKILL_PATH = REPO_ROOT / "plan-execution" / "SKILL.md"
-FORMATTER = REPO_ROOT / "plan-writing" / "scripts" / "format_plan_contract.py"
-VALIDATOR = REPO_ROOT / "plan-writing" / "scripts" / "validate_plan_contract.py"
-READER = REPO_ROOT / "plan-execution" / "scripts" / "read_plan_contract.py"
-WRITER_HELPER = REPO_ROOT / "plan-writing" / "scripts" / "plan_contract.py"
-READER_HELPER = REPO_ROOT / "plan-execution" / "scripts" / "plan_contract.py"
+SKILLS_ROOT = REPO_ROOT / ".codex" / "skills"
+SKILL_PATH = SKILLS_ROOT / "plan-execution" / "SKILL.md"
+FORMATTER = SKILLS_ROOT / "plan-writing" / "scripts" / "format_plan_contract.py"
+VALIDATOR = SKILLS_ROOT / "plan-writing" / "scripts" / "validate_plan_contract.py"
+READER = SKILLS_ROOT / "plan-execution" / "scripts" / "read_plan_contract.py"
+WRITER_HELPER = SKILLS_ROOT / "plan-writing" / "scripts" / "plan_contract.py"
+READER_HELPER = SKILLS_ROOT / "plan-execution" / "scripts" / "plan_contract.py"
 
 
 def run(

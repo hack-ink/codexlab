@@ -8,10 +8,11 @@ import subprocess
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SKILL_PATH = REPO_ROOT / "delivery-prepare" / "SKILL.md"
-GENERATOR = REPO_ROOT / "delivery-prepare" / "scripts" / "build_delivery_contract.py"
+SKILLS_ROOT = REPO_ROOT / ".codex" / "skills"
+SKILL_PATH = SKILLS_ROOT / "delivery-prepare" / "SKILL.md"
+GENERATOR = SKILLS_ROOT / "delivery-prepare" / "scripts" / "build_delivery_contract.py"
 VALIDATOR = (
-    REPO_ROOT / "delivery-prepare" / "scripts" / "validate_delivery_contract.py"
+    SKILLS_ROOT / "delivery-prepare" / "scripts" / "validate_delivery_contract.py"
 )
 FALLBACK_VALIDATOR_SCRIPT = """
 import json

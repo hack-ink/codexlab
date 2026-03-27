@@ -7,7 +7,7 @@ from textwrap import dedent
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SKILL_PATH = REPO_ROOT / "review-repair" / "SKILL.md"
+SKILL_PATH = REPO_ROOT / ".codex" / "skills" / "review-repair" / "SKILL.md"
 
 
 def assert_contains(text: str, needle: str) -> None:

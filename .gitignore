@@ -1,5 +1,7 @@
 # AI
 .codex
+!/.codex/
+!/.codex/**
 .workspaces
 .worktrees
 .specify

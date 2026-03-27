@@ -11,11 +11,12 @@ import tomllib
 
 DEV_DIR = Path(__file__).resolve().parent
 REPO_ROOT = DEV_DIR.parents[1]
-SOURCE_HELPER_PATH = REPO_ROOT / "skill-routing" / "scripts" / "build_child_skill_policy.py"
-SOURCE_TEMPLATE_PATH = REPO_ROOT / "skill-routing" / "child-skill-policy.toml"
-SOURCE_SKILL_PATH = REPO_ROOT / "skill-routing" / "SKILL.md"
-SOURCE_OVERLAY_SKILL_PATH = REPO_ROOT / "scout-skeptic" / "SKILL.md"
-SOURCE_FIXTURE_PATH = REPO_ROOT / "skill-routing" / "routing-fixtures.json"
+SKILLS_ROOT = REPO_ROOT / ".codex" / "skills"
+SOURCE_HELPER_PATH = SKILLS_ROOT / "skill-routing" / "scripts" / "build_child_skill_policy.py"
+SOURCE_TEMPLATE_PATH = SKILLS_ROOT / "skill-routing" / "child-skill-policy.toml"
+SOURCE_SKILL_PATH = SKILLS_ROOT / "skill-routing" / "SKILL.md"
+SOURCE_OVERLAY_SKILL_PATH = SKILLS_ROOT / "scout-skeptic" / "SKILL.md"
+SOURCE_FIXTURE_PATH = SKILLS_ROOT / "skill-routing" / "routing-fixtures.json"
 PRIMARY_PROCESS_REFERENCE_HEADING = "## Primary workflow references for overlay examples"
 
 

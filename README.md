@@ -36,47 +36,48 @@ The current tree mainly ships reusable skills plus maintainer-only validation he
 
 | Skill | Purpose | Path |
 | --- | --- | --- |
-| `delivery-closeout` | Consumes a pushed `delivery/1` payload, syncs delivery state, and mirrors issue outcomes back to GitHub. | `delivery-closeout/SKILL.md` |
-| `delivery-prepare` | Produces the shared machine-first `delivery/1` contract before commit or push. | `delivery-prepare/SKILL.md` |
-| `dep-roll` | Upgrades pnpm, Poetry, and Cargo dependency graphs to the latest mutually compatible set. | `dep-roll/SKILL.md` |
-| `plan-execution` | Executes a persisted `plan/1` without inferring authority from chat. | `plan-execution/SKILL.md` |
-| `plan-writing` | Creates or revises persisted `plan/1` files under `docs/plans/`. | `plan-writing/SKILL.md` |
-| `pr-land` | Handles PR readiness checks, sync decisions, and merge execution without swallowing downstream closeout. | `pr-land/SKILL.md` |
-| `python-policy` | Defines Python runtime boundaries and project-configured quality gates. | `python-policy/SKILL.md` |
-| `research` | Runs evidence-backed investigation and recommendation workflows with web research when needed. | `research/SKILL.md` |
-| `research-pro` | Consults ChatGPT Pro via chatgpt.com Projects for architecture and research-heavy decisions. | `research-pro/SKILL.md` |
-| `review-loop` | Shared bounded review -> fix -> verify -> re-review engine for concrete diffs and repaired heads. | `review-loop/SKILL.md` |
-| `review-prepare` | Wraps `review-loop` for pre-PR self-review and branch readiness checks. | `review-prepare/SKILL.md` |
-| `review-repair` | Wraps `review-loop` for external review feedback, reply handling, and verified thread resolution. | `review-repair/SKILL.md` |
-| `rust-policy` | Defines Rust scope, tooling, formatting, ownership, and safety expectations. | `rust-policy/SKILL.md` |
-| `scout-skeptic` | Additive checkpoint guidance for non-trivial tasks that still need evidence gathering or theory challenge after a short probe. | `scout-skeptic/SKILL.md` |
-| `scrapling` | Provides fallback scraping guidance when lightweight fetch paths are blocked or incomplete. | `scrapling/SKILL.md` |
-| `skill-routing` | Establishes skill discovery, selection order, and primary-vs-overlay loading discipline. | `skill-routing/SKILL.md` |
-| `verification-before-completion` | Enforces evidence-first completion checks before claiming readiness or success. | `verification-before-completion/SKILL.md` |
-| `workspace-reconcile` | Reconciles conflicting `.workspaces/*` lanes into one surviving implementation lane. | `workspace-reconcile/SKILL.md` |
-| `workspaces` | Creates, reuses, and closes clone-backed `.workspaces/*` lanes for non-read-only work. | `workspaces/SKILL.md` |
+| `delivery-closeout` | Consumes a pushed `delivery/1` payload, syncs delivery state, and mirrors issue outcomes back to GitHub. | `.codex/skills/delivery-closeout/SKILL.md` |
+| `delivery-prepare` | Produces the shared machine-first `delivery/1` contract before commit or push. | `.codex/skills/delivery-prepare/SKILL.md` |
+| `dep-roll` | Upgrades pnpm, Poetry, and Cargo dependency graphs to the latest mutually compatible set. | `.codex/skills/dep-roll/SKILL.md` |
+| `plan-execution` | Executes a persisted `plan/1` without inferring authority from chat. | `.codex/skills/plan-execution/SKILL.md` |
+| `plan-writing` | Creates or revises persisted `plan/1` files under `docs/plans/`. | `.codex/skills/plan-writing/SKILL.md` |
+| `pr-land` | Handles PR readiness checks, sync decisions, and merge execution without swallowing downstream closeout. | `.codex/skills/pr-land/SKILL.md` |
+| `python-policy` | Defines Python runtime boundaries and project-configured quality gates. | `.codex/skills/python-policy/SKILL.md` |
+| `research` | Runs evidence-backed investigation and recommendation workflows with web research when needed. | `.codex/skills/research/SKILL.md` |
+| `research-pro` | Consults ChatGPT Pro via chatgpt.com Projects for architecture and research-heavy decisions. | `.codex/skills/research-pro/SKILL.md` |
+| `review-loop` | Shared bounded review -> fix -> verify -> re-review engine for concrete diffs and repaired heads. | `.codex/skills/review-loop/SKILL.md` |
+| `review-prepare` | Wraps `review-loop` for pre-PR self-review and branch readiness checks. | `.codex/skills/review-prepare/SKILL.md` |
+| `review-repair` | Wraps `review-loop` for external review feedback, reply handling, and verified thread resolution. | `.codex/skills/review-repair/SKILL.md` |
+| `rust-policy` | Defines Rust scope, tooling, formatting, ownership, and safety expectations. | `.codex/skills/rust-policy/SKILL.md` |
+| `scout-skeptic` | Additive checkpoint guidance for non-trivial tasks that still need evidence gathering or theory challenge after a short probe. | `.codex/skills/scout-skeptic/SKILL.md` |
+| `scrapling` | Provides fallback scraping guidance when lightweight fetch paths are blocked or incomplete. | `.codex/skills/scrapling/SKILL.md` |
+| `skill-routing` | Establishes skill discovery, selection order, and primary-vs-overlay loading discipline. | `.codex/skills/skill-routing/SKILL.md` |
+| `verification-before-completion` | Enforces evidence-first completion checks before claiming readiness or success. | `.codex/skills/verification-before-completion/SKILL.md` |
+| `workspace-reconcile` | Reconciles conflicting `.workspaces/*` lanes into one surviving implementation lane. | `.codex/skills/workspace-reconcile/SKILL.md` |
+| `workspaces` | Creates, reuses, and closes clone-backed `.workspaces/*` lanes for non-read-only work. | `.codex/skills/workspaces/SKILL.md` |
 
 ## Contributing
 
 To add or update Codex-oriented content:
 
-1. Keep the content Codex-focused. Runtime config, agent policy, skills, and plugin assets belong here; unrelated app code does not.
-2. For skills, load the system `skill-creator` skill first so naming, frontmatter, and packaging stay aligned with the current authoring contract.
-3. Create or update `<skill-name>/SKILL.md` with the required frontmatter (`name`, `description`).
-4. Keep installable runtime assets with the skill itself. If `SKILL.md` references a script, template, schema, or helper at runtime, keep it under `<skill-name>/`.
+1. Load the system `skill-creator` skill first so naming, frontmatter, and packaging stay aligned with the current authoring contract.
+2. Keep the content Codex-focused. Runtime config, agent policy, skills, and plugin assets belong here; unrelated app code does not.
+3. For skills, create or update `.codex/skills/<skill-name>/SKILL.md` with the required frontmatter (`name`, `description`).
+4. Keep installable runtime assets with the skill itself. If `SKILL.md` references a script, template, schema, or helper at runtime, keep it under `.codex/skills/<skill-name>/`.
 5. Keep repo-local validation assets under `dev/<skill-name>/`. Smoke tests, e2e fixtures, backtests, and maintainer-only validation entrypoints belong there and are not part of the installed skill contract.
 6. If you add plugin assets, keep the plugin manifest at `.codex-plugin/plugin.json` and keep plugin-root files such as `.app.json`, `.mcp.json`, `skills/`, and `assets/` at the plugin root.
 7. Treat generated artifacts, lockfiles, codegen outputs, and build outputs as tooling-owned. Runtime content should point to canonical regeneration or sync commands instead of instructing manual edits to generated files.
-8. Update this `README.md` when the Codex asset catalog changes.
+8. Keep instructions concise, testable, and narrowly scoped.
+9. Update this `README.md` when the Codex asset catalog changes.
 
 ## Repository Layout
 
 - This repository is intentionally scoped to Codex-facing assets.
 - The current tracked tree primarily contains reusable skills plus maintainer tooling.
-- `~/.codex/config.toml` and `~/.codex/AGENTS.md` are canonical examples of runtime configuration and policy this repository is designed around, even when those files are installed elsewhere.
+- `~/.codex/config.toml` and `~/.codex/AGENTS.md` are canonical runtime examples this repository is designed around, even when those files are installed elsewhere.
 - `~/.codex/skills/` is the canonical runtime destination for reusable skills maintained from this repository.
-- `<skill-name>/SKILL.md` is the required skill definition entrypoint.
-- `<skill-name>/...` stores installable runtime assets referenced by `SKILL.md`, such as scripts, templates, schemas, or references.
+- `.codex/skills/<skill-name>/SKILL.md` is the required skill definition entrypoint.
+- `.codex/skills/<skill-name>/...` stores installable runtime assets referenced by `SKILL.md`, such as scripts, templates, schemas, or references.
 - `dev/<skill-name>/...` stores repo-local smoke tests and maintainer validation helpers that are not part of the installed runtime payload.
 - Codex plugin assets can include `.codex-plugin/plugin.json`, `.app.json`, `.mcp.json`, `skills/`, and `assets/`, with marketplace metadata layered on top when distribution is needed.
 

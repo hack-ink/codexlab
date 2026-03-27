@@ -9,8 +9,10 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SKILL_PATH = REPO_ROOT / "research-pro" / "SKILL.md"
-LEGACY_WRAPPER = REPO_ROOT / "research-pro" / "scripts" / "agent-browser-node.sh"
+SKILL_PATH = REPO_ROOT / ".codex" / "skills" / "research-pro" / "SKILL.md"
+LEGACY_WRAPPER = (
+    REPO_ROOT / ".codex" / "skills" / "research-pro" / "scripts" / "agent-browser-node.sh"
+)
 REQUIRED_HELP_NEEDLES = [
     "--session <name>",
     "--session-name <name>",

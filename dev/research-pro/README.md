@@ -21,8 +21,8 @@ python3 dev/research-pro/run_smoke.py --check-host-cli
 By default, this smoke validates the source-repo `research-pro` contract
 without depending on a local browser install:
 
-- legacy Node/Playwright wrapper references stay out of `research-pro/SKILL.md`
-- the obsolete `research-pro/scripts/agent-browser-node.sh` artifact stays removed
+- legacy Node/Playwright wrapper references stay out of `.codex/skills/research-pro/SKILL.md`
+- the obsolete `.codex/skills/research-pro/scripts/agent-browser-node.sh` artifact stays removed
 
 With `--check-host-cli`, it also validates the current host's `agent-browser`
 entrypoint:

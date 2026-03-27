@@ -8,9 +8,10 @@ import subprocess
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SKILL_PATH = REPO_ROOT / "plan-writing" / "SKILL.md"
-FORMATTER = REPO_ROOT / "plan-writing" / "scripts" / "format_plan_contract.py"
-VALIDATOR = REPO_ROOT / "plan-writing" / "scripts" / "validate_plan_contract.py"
+SKILLS_ROOT = REPO_ROOT / ".codex" / "skills"
+SKILL_PATH = SKILLS_ROOT / "plan-writing" / "SKILL.md"
+FORMATTER = SKILLS_ROOT / "plan-writing" / "scripts" / "format_plan_contract.py"
+VALIDATOR = SKILLS_ROOT / "plan-writing" / "scripts" / "validate_plan_contract.py"
 
 
 def run(

@@ -9,9 +9,10 @@ import tempfile
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-READER = REPO_ROOT / "delivery-closeout" / "scripts" / "read_delivery_contract.py"
+SKILLS_ROOT = REPO_ROOT / ".codex" / "skills"
+READER = SKILLS_ROOT / "delivery-closeout" / "scripts" / "read_delivery_contract.py"
 GENERATOR = (
-    REPO_ROOT / "delivery-prepare" / "scripts" / "build_delivery_contract.py"
+    SKILLS_ROOT / "delivery-prepare" / "scripts" / "build_delivery_contract.py"
 )
 
 

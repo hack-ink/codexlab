@@ -1,6 +1,6 @@
 ---
 name: research
-description: Use when the user requests research, investigation, best practices, comparisons, or evidence-backed recommendations.
+description: Use when the user requests research, investigation, best practices, comparisons, or evidence-backed recommendations, including when repeated local attempts on the same problem are failing and the agent should stop trial-and-error to gather external guidance.
 ---
 
 # Research
@@ -14,6 +14,17 @@ Turn an ambiguous question into a decision-ready recommendation backed by explic
 - The user asks you to research, investigate, compare options, find best practices, or recommend a solution.
 - The task requires reading existing materials (docs/links/code/logs) before deciding.
 - The decision should be supported by multiple independent external sources plus any provided internal context.
+- Repeated local attempts on the same error class are failing, or the next local step is starting to look like a workaround, bypass, or brittle patch rather than a direct fix.
+
+## Escalation from local trial-and-error
+
+Use this skill as an escalation path, not only for explicit research requests.
+
+- Before a fourth substantial attempt on the same error class, stop local trial-and-error and research existing guidance first.
+- Escalate sooner when the next proposed step looks like a workaround, bypass, or brittle patch.
+- Treat a substantial attempt as one that changes a concrete hypothesis, reruns the relevant verification, and yields new success or failure evidence.
+- Do not count repeated reruns, extra logging, or near-identical parameter tweaking as new substantial attempts.
+- Prefer established guidance over inventing a tricky local workaround when the ecosystem likely already knows the failure mode.
 
 ## Preferred inputs (collect if available; do not block on complete intake)
 
@@ -39,10 +50,15 @@ Turn an ambiguous question into a decision-ready recommendation backed by explic
     - **Fallback: 2 sources only if 3 is not feasible**, and you must say why (niche topic, paywalled sources, no primary docs, etc.).
     - Define **independent** as "not the same claim repeated via syndication or mutual citations". Prefer sources from different organizations, and prioritize primary documentation when available.
     - If websearch is unavailable (policy, environment, outage) or disallowed by the user, **stop** and ask whether to proceed with an internal-only (lower-confidence) answer.
-5. **Alternatives**: present at least 2 viable options with tradeoffs (cost, complexity, risk, time-to-implement, operational burden).
-6. **No evidence, no claim**: if a claim cannot be supported, label it as a hypothesis and say what evidence would confirm/deny it.
-7. **No leaks**: do not include secrets, customer data, or proprietary identifiers in websearch queries or external citations.
-8. **Architecture-first over minimal edits**: You may recommend breaking/destructive changes (rewrites, API changes, migrations) when they materially improve architecture, performance, or outcomes; do not constrain recommendations to minimal diffs. Always state blast radius and include a migration/rollback plan.
+5. **Escalate before workaround loops**:
+    - If the same error class still persists after 3 substantial attempts, research existing guidance before another attempt.
+    - If 10-15 minutes of work produced no new root-cause evidence, switch from local guessing to external research.
+    - If the next step looks like a workaround, bypass, or brittle patch, escalate immediately instead of waiting for attempt counts or a longer timebox.
+    - If you cannot explain the failure mechanism and why the next fix addresses it directly, do not keep iterating locally as if the root cause were already understood.
+6. **Alternatives**: present at least 2 viable options with tradeoffs (cost, complexity, risk, time-to-implement, operational burden).
+7. **No evidence, no claim**: if a claim cannot be supported, label it as a hypothesis and say what evidence would confirm/deny it.
+8. **No leaks**: do not include secrets, customer data, or proprietary identifiers in websearch queries or external citations.
+9. **Architecture-first over minimal edits**: You may recommend breaking/destructive changes (rewrites, API changes, migrations) when they materially improve architecture, performance, or outcomes; do not constrain recommendations to minimal diffs. Always state blast radius and include a migration/rollback plan.
 
 ## Procedure
 
@@ -64,7 +80,11 @@ Turn an ambiguous question into a decision-ready recommendation backed by explic
     - Define the criteria you will use to judge solutions (examples: security, reliability, latency, DX, maturity/ecosystem, total cost, migration complexity).
     - If criteria conflict, ask the user to prioritize (e.g., reliability > cost > speed).
 
-5. **Web research (best practices + option survey)**
+5. **Record the escalation trigger when applicable**
+    - If the task escalated from failed local attempts, state which trigger fired: attempt count, no new root-cause evidence, workaround pressure, or inability to explain the failure mechanism.
+    - Summarize the failed local hypotheses briefly so the research targets the actual gap instead of restarting from zero.
+
+6. **Web research (best practices + option survey)**
     - Use websearch and keep a search log (queries + date).
     - Prefer primary sources: official docs, vendor guidance, standards, incident writeups, well-established engineering org posts.
     - Track publication/last-updated dates for key sources; call out when guidance is likely stale.
@@ -75,12 +95,12 @@ Turn an ambiguous question into a decision-ready recommendation backed by explic
     - Keep queries and excerpts non-sensitive; generalize details when searching.
     - If the topic is broad, start with an industry survey/landscape (what exists), then zoom in to 2-4 candidates.
 
-6. **Synthesize**
+7. **Synthesize**
     - Present 2-4 options.
     - Use a compact comparison table against the evaluation criteria.
     - Call out uncertainties and what evidence would reduce them.
 
-7. **Recommend + justify**
+8. **Recommend + justify**
     - Make a clear recommendation and specify conditions where you would choose a different option.
     - Provide an evidence map that ties each major claim to evidence and sources.
     - State your confidence level (high/medium/low) and why.
@@ -94,6 +114,7 @@ Turn an ambiguous question into a decision-ready recommendation backed by explic
 - **Pain points (confirmed)**: what hurts today.
 - **What we know** (from provided materials): facts only; cite internal artifacts by name/path if available.
 - **Constraints + success criteria**: including non-goals.
+- **Escalation trigger**: why local trial-and-error was no longer the right default, if applicable.
 - **Open questions**: and which are answered vs pending.
 - **Assumptions + limitations**: what you assumed, what you could not verify, and why.
 - **Options considered**: 2-4 options, with a comparison table.
@@ -134,6 +155,7 @@ Different domains have different norms. Use this as a default ordering, and expl
 
 - Minimum bar (default): 3 independent external sources + an evidence map (claim -> evidence -> source).
 - Default flow: read first, ask only blocking questions, then research externally.
+- Before a fourth substantial attempt on the same error class, research first.
 - Always include: options + tradeoffs + recommendation + confidence + “what would change my mind”.
 - Keep a search log: queries + date.
 
@@ -143,6 +165,7 @@ Different domains have different norms. Use this as a default ordering, and expl
 - Turning the intake checklist into a blocker when the available materials already support a first-pass framing.
 - Treating “two blog posts that cite each other” as independent evidence.
 - Leaking internal identifiers in web queries (always generalize).
+- Continuing a workaround loop past the third substantial attempt without researching established external guidance.
 
 ## References (for how to evaluate sources / record decisions)
 
