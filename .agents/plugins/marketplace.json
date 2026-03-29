@@ -8,7 +8,7 @@
       "name": "research",
       "source": {
         "source": "local",
-        "path": "./plugins/research"
+        "path": "./.codex/plugins/research"
       },
       "policy": {
         "installation": "AVAILABLE",
