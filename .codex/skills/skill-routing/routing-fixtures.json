@@ -47,39 +47,39 @@
       ]
     },
     {
-      "name": "implementation work routes to workspaces without explicit lane wording",
+      "name": "implementation work routes to worktrees without explicit lane wording",
       "prompt": "Implement a new feature in this repo and keep the work isolated so review and cleanup stay clean.",
       "expect_primary_process_skills": [
-        "workspaces"
+        "worktrees"
       ],
       "expect_overlay_skills": [],
       "policy_reason_needles": [
-        "\"Implement this feature in this repo\" -> load `workspaces` first so the work starts in an isolated `.workspaces/*` lane; if a saved `plan/1` is explicitly required, create or revise it from inside that active lane instead of leaving it in the primary checkout.",
-        "Start or resume non-read-only implementation work -> `workspaces`"
+        "\"Implement this feature in this repo\" -> load `worktrees` first so the work starts in an isolated worktree-backed `.worktrees/*` lane; if a saved `plan/1` is explicitly required, create or revise it from inside that active lane instead of leaving it in the primary checkout.",
+        "Start or resume non-read-only implementation work -> `worktrees`"
       ]
     },
     {
-      "name": "workspace lane setup is the default start for implementation work",
+      "name": "worktree lane setup is the default start for implementation work",
       "prompt": "Resume a partially finished implementation task in this repo and continue in the matching isolated lane instead of starting over.",
       "expect_primary_process_skills": [
-        "workspaces"
+        "worktrees"
       ],
       "expect_overlay_skills": [],
       "policy_reason_needles": [
-        "Start or resume non-read-only implementation work -> `workspaces`",
-        "load `workspaces` first so each task gets its own isolated `.workspaces/*` lane"
+        "Start or resume non-read-only implementation work -> `worktrees`",
+        "load `worktrees` first so each task gets its own isolated worktree-backed `.worktrees/*` lane"
       ]
     },
     {
-      "name": "workspace conflicts route to reconciliation",
-      "prompt": "Two .workspaces lanes now conflict and one surviving lane needs to absorb the donor lane before review can continue.",
+      "name": "worktree conflicts route to reconciliation",
+      "prompt": "Two .worktrees lanes now conflict and one surviving lane needs to absorb the donor lane before review can continue.",
       "expect_primary_process_skills": [
-        "workspace-reconcile"
+        "worktree-reconcile"
       ],
       "expect_overlay_skills": [],
       "policy_reason_needles": [
-        "Multiple `.workspaces/*` lanes conflict and one must survive -> `workspace-reconcile`",
-        "This conflict came from multiple `.workspaces/*` lanes"
+        "Multiple `.worktrees/*` lanes conflict and one must survive -> `worktree-reconcile`",
+        "This conflict came from multiple `.worktrees/*` lanes"
       ]
     },
     {

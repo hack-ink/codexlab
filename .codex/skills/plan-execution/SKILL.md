@@ -27,7 +27,7 @@ Typical triggers:
 - If the saved file is not raw `plan/1` JSON, stop and report the migration error.
 - If the contract is contradictory, stale, or invalid, stop and route back to `plan-writing`.
 - Before any commit or push, follow the local commit/push gate.
-- Treat `state.phase = "done"` as plan-local completion only. It does not bypass downstream review, merge, `delivery-closeout`, or workspace cleanup gates defined outside the saved plan.
+- Treat `state.phase = "done"` as plan-local completion only. It does not bypass downstream review, merge, `delivery-closeout`, or worktree cleanup gates defined outside the saved plan.
 
 ## Consumer ownership
 

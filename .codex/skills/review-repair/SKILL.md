@@ -9,7 +9,7 @@ description: Use after a PR has review feedback on GitHub. Wraps `review-loop` f
 
 - This skill owns the external-review repair loop after a PR already exists.
 - This skill triages unresolved review comments, uses `review-loop` for any owned repair batch on the repaired diff, replies in-thread, and resolves only the threads that are actually complete.
-- This skill does not request review, merge, close out trackers, or clean up workspaces.
+- This skill does not request review, merge, close out trackers, or clean up worktrees.
 
 ## Inputs
 

@@ -1,19 +1,19 @@
 ---
-name: workspace-reconcile
-description: Use only when multiple clone-backed `.workspaces/*` lanes for the same repository conflict and must be reconciled into one surviving lane. Owns surviving-lane selection, reconciliation strategy choice, integration, and verification; does not create/delete workspaces, do review, merge, or tracker closeout.
+name: worktree-reconcile
+description: Use only when multiple worktree-backed `.worktrees/*` lanes for the same repository conflict and must be reconciled into one surviving lane. Owns surviving-lane selection, reconciliation strategy choice, integration, and verification; does not create/delete worktrees, do review, merge, or tracker closeout.
 ---
 
-# Workspace Reconcile
+# Worktree Reconcile
 
 ## Scope
 
-- This skill is only for `.workspaces/*` lane conflicts inside the same repository.
-- This skill does not create or remove workspaces. It returns `cleanup_candidates` for `workspaces` to close later.
+- This skill is only for `.worktrees/*` lane conflicts inside the same repository.
+- This skill does not create or remove worktrees. It returns `cleanup_candidates` for `worktrees` to close later.
 - This skill does not request review, repair review threads, merge PRs, or sync trackers.
 
 Typical triggers:
 
-- Two or more `.workspaces/*` lanes touched the same code and now conflict
+- Two or more `.worktrees/*` lanes touched the same code and now conflict
 - One lane should survive and absorb another lane's work
 - A donor lane needs rebase, cherry-pick, merge, or re-split into a clearer boundary
 - Repeated conflict churn suggests the original split was wrong
@@ -29,8 +29,8 @@ Typical triggers:
 
 ## Hard gates
 
-- All participating paths must live under `.workspaces/*`.
-- All participating workspaces must belong to the same repository.
+- All participating paths must live under `.worktrees/*`.
+- All participating worktrees must belong to the same repository.
 - The surviving lane must be explicit before you start editing.
 - If the donor lane contains useful uncommitted work, preserve it before aborting or switching strategies.
 
@@ -39,27 +39,27 @@ Typical triggers:
 Run the smallest commands that establish lane identities and conflict state:
 
 ```bash
-git -C "$surviving_workspace" rev-parse --show-toplevel
-git -C "$surviving_workspace" rev-parse --abbrev-ref HEAD
-git -C "$surviving_workspace" status --short
-git -C "$surviving_workspace" diff --name-only --diff-filter=U
-git -C "$donor_workspace" rev-parse --abbrev-ref HEAD
-git -C "$donor_workspace" status --short
+git -C "$surviving_worktree" rev-parse --show-toplevel
+git -C "$surviving_worktree" rev-parse --abbrev-ref HEAD
+git -C "$surviving_worktree" status --short
+git -C "$surviving_worktree" diff --name-only --diff-filter=U
+git -C "$donor_worktree" rev-parse --abbrev-ref HEAD
+git -C "$donor_worktree" status --short
 ```
 
 If a Git operation is already in progress inside the surviving lane, detect it before editing:
 
 ```bash
-git -C "$surviving_workspace" rev-parse -q --verify MERGE_HEAD
-git -C "$surviving_workspace" rev-parse -q --verify CHERRY_PICK_HEAD
-git -C "$surviving_workspace" rev-parse -q --verify REBASE_HEAD
+git -C "$surviving_worktree" rev-parse -q --verify MERGE_HEAD
+git -C "$surviving_worktree" rev-parse -q --verify CHERRY_PICK_HEAD
+git -C "$surviving_worktree" rev-parse -q --verify REBASE_HEAD
 ```
 
 Read the branch delta before choosing a strategy:
 
 ```bash
-git -C "$surviving_workspace" log --oneline --left-right --cherry "$target_branch"...HEAD
-git -C "$donor_workspace" log --oneline --left-right --cherry "$target_branch"...HEAD
+git -C "$surviving_worktree" log --oneline --left-right --cherry "$target_branch"...HEAD
+git -C "$donor_worktree" log --oneline --left-right --cherry "$target_branch"...HEAD
 ```
 
 ## Pick the strategy deliberately
@@ -72,16 +72,16 @@ git -C "$donor_workspace" log --oneline --left-right --cherry "$target_branch"..
 Preserve work before switching strategies:
 
 ```bash
-git -C "$donor_workspace" status --short
-git -C "$surviving_workspace" status --short
+git -C "$donor_worktree" status --short
+git -C "$surviving_worktree" status --short
 ```
 
 Use official abort flows instead of deleting progress blindly:
 
 ```bash
-git -C "$surviving_workspace" merge --abort
-git -C "$surviving_workspace" rebase --abort
-git -C "$surviving_workspace" cherry-pick --abort
+git -C "$surviving_worktree" merge --abort
+git -C "$surviving_worktree" rebase --abort
+git -C "$surviving_worktree" cherry-pick --abort
 ```
 
 ## Resolve carefully
@@ -89,14 +89,14 @@ git -C "$surviving_workspace" cherry-pick --abort
 - Read each conflicted hunk against both sides and the surrounding function or section.
 - Prefer keeping intent, not just both text blocks.
 - Remove conflict markers completely.
-- Re-check with `git -C "$surviving_workspace" diff --name-only --diff-filter=U` until no unresolved files remain.
+- Re-check with `git -C "$surviving_worktree" diff --name-only --diff-filter=U` until no unresolved files remain.
 
 For repeated conflict-heavy files, compare against each side explicitly:
 
 ```bash
-git -C "$surviving_workspace" show :1:path/to/file
-git -C "$surviving_workspace" show :2:path/to/file
-git -C "$surviving_workspace" show :3:path/to/file
+git -C "$surviving_worktree" show :1:path/to/file
+git -C "$surviving_worktree" show :2:path/to/file
+git -C "$surviving_worktree" show :3:path/to/file
 ```
 
 ## Verify before closeout
@@ -111,8 +111,8 @@ After resolving:
 Minimum checks:
 
 ```bash
-git -C "$surviving_workspace" status --short
-git -C "$surviving_workspace" diff --stat
+git -C "$surviving_worktree" status --short
+git -C "$surviving_worktree" diff --stat
 ```
 
 Then run the repo-native test, build, or lint command that covers the reconciled files.
@@ -122,11 +122,11 @@ Then run the repo-native test, build, or lint command that covers the reconciled
 - `reconciled` - donor work integrated into the surviving lane and verified.
 - `needs_resplit` - the original split is the problem; stop and re-plan the lane boundary.
 - `blocked` - insufficient evidence, risky uncommitted work, or unresolved verification failure.
-- `cleanup_candidates` - obsolete donor lanes that `workspaces` may clean up after the surviving lane finishes.
+- `cleanup_candidates` - obsolete donor lanes that `worktrees` may clean up after the surviving lane finishes.
 
 ## Red flags
 
-- Reconciling two arbitrary branches that are not `.workspaces/*` lanes
+- Reconciling two arbitrary branches that are not `.worktrees/*` lanes
 - Editing both surviving and donor lanes interchangeably instead of choosing a surviving lane
 - Combining unrelated tasks just to make the conflict disappear
 - Manually resolving generated files, lockfiles, codegen outputs, or build outputs instead of rerunning the canonical regeneration path

@@ -6,12 +6,12 @@ from pathlib import Path
 DEV_DIR = Path(__file__).resolve().parent
 REPO_ROOT = DEV_DIR.parents[1]
 COUPLED_SKILL_NEEDLES = [
-    "`workspaces`",
+    "`worktrees`",
     "`plan-writing`",
     "`plan-execution`",
     "`delivery-prepare`",
     "`delivery-closeout`",
-    "`workspace-reconcile`",
+    "`worktree-reconcile`",
     "`review-prepare`",
     "`review-repair`",
     "`pr-land`",

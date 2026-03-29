@@ -1,6 +1,6 @@
 ---
 name: pr-land
-description: Use when a PR may be ready to land. Owns PR readiness checks, delivery-history-aware merge policy, necessary branch sync decisions, and merge execution; does not produce `delivery/1`, close out trackers, or clean up workspaces and branches.
+description: Use when a PR may be ready to land. Owns PR readiness checks, delivery-history-aware merge policy, necessary branch sync decisions, and merge execution; does not produce `delivery/1`, close out trackers, or clean up worktrees and branches.
 ---
 
 # PR Land
@@ -9,7 +9,7 @@ description: Use when a PR may be ready to land. Owns PR readiness checks, deliv
 
 - This skill is a land-lite merge workflow for an existing PR.
 - It owns the merge decision and merge execution once the PR is truly ready.
-- It does not request review, repair review comments, produce `delivery/1`, close out trackers, or clean up workspaces and branches.
+- It does not request review, repair review comments, produce `delivery/1`, close out trackers, or clean up worktrees and branches.
 - If a delivery-style PR needs a merge commit, this skill must consume an explicit merge-commit `delivery/1` message prepared by `delivery-prepare`; it does not invent that payload itself.
 
 ## Inputs
@@ -61,5 +61,5 @@ description: Use when a PR may be ready to land. Owns PR readiness checks, deliv
 
 - Waiting inside this skill for CI or review to finish
 - Treating this skill as if it owns tracker closeout
-- Cleaning up branches or workspaces here
+- Cleaning up branches or worktrees here
 - Squashing a PR whose commits already use `delivery/1`

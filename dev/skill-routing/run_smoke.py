@@ -185,8 +185,8 @@ def assert_overlay_routing_fixtures(helper) -> None:
     negative_cases = 0
     stacked_cases = 0
     direct_only_cases = 0
-    workspace_cases = 0
-    generic_workspace_cases = 0
+    worktree_cases = 0
+    generic_worktree_cases = 0
     non_jargon_overlay_cases = 0
     seen_prompts: set[str] = set()
 
@@ -269,11 +269,11 @@ def assert_overlay_routing_fixtures(helper) -> None:
             if not fixture.expect_primary_process_skills:
                 direct_only_cases += 1
 
-        if fixture.expect_primary_process_skills == ("workspaces",):
-            workspace_cases += 1
+        if fixture.expect_primary_process_skills == ("worktrees",):
+            worktree_cases += 1
             lowered_prompt = fixture.prompt.lower()
-            if ".workspaces" not in lowered_prompt and " lane " not in f" {lowered_prompt} ":
-                generic_workspace_cases += 1
+            if ".worktrees" not in lowered_prompt and " lane " not in f" {lowered_prompt} ":
+                generic_worktree_cases += 1
 
     if positive_cases == 0 or negative_cases == 0:
         raise AssertionError(
@@ -287,11 +287,11 @@ def assert_overlay_routing_fixtures(helper) -> None:
         raise AssertionError(
             "routing fixtures must include at least one direct-only case with no primary workflow skill"
         )
-    if workspace_cases == 0:
-        raise AssertionError("routing fixtures must include at least one workspaces case")
-    if generic_workspace_cases == 0:
+    if worktree_cases == 0:
+        raise AssertionError("routing fixtures must include at least one worktrees case")
+    if generic_worktree_cases == 0:
         raise AssertionError(
-            "routing fixtures must include at least one workspaces case without explicit lane jargon"
+            "routing fixtures must include at least one worktrees case without explicit lane jargon"
         )
     if non_jargon_overlay_cases == 0:
         raise AssertionError(

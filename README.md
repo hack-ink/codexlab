@@ -17,7 +17,9 @@ Codex-first repository for reusable workflow assets, runtime guidance, and packa
 - Current repository content is centered on reusable skills and repo-local maintainer harnesses under `dev/`.
 - Repository scope is broader than skills alone and includes Codex-facing assets such as `~/.codex/config.toml`, `~/.codex/AGENTS.md`, `~/.codex/skills/`, and plugin-related metadata and packaging.
 - Tracks current Codex plugin packaging concepts, including `.codex-plugin/plugin.json`, `.app.json`, `.mcp.json`, and marketplace-oriented distribution flows.
-- Keeps machine-first workflow primitives for planning, review, delivery, and workspace lifecycle management explicit and composable.
+- Keeps machine-first workflow primitives for planning, review, delivery, and worktree lifecycle management explicit and composable.
+- Encodes a single-agent-first research model, with conditional `scout` and `analyst` workers and reuse of the existing `skeptic` role instead of adding extra standing personas.
+- Includes a repo-local `research` plugin shell under `plugins/research/` plus `.agents/plugins/marketplace.json` for local plugin installation and iteration.
 
 ## Codex Scope
 
@@ -43,7 +45,7 @@ The current tree mainly ships reusable skills plus maintainer-only validation he
 | `plan-writing` | Creates or revises persisted `plan/1` files under `docs/plans/`. | `.codex/skills/plan-writing/SKILL.md` |
 | `pr-land` | Handles PR readiness checks, sync decisions, and merge execution without swallowing downstream closeout. | `.codex/skills/pr-land/SKILL.md` |
 | `python-policy` | Defines Python runtime boundaries and project-configured quality gates. | `.codex/skills/python-policy/SKILL.md` |
-| `research` | Runs evidence-backed investigation and recommendation workflows with web research when needed. | `.codex/skills/research/SKILL.md` |
+| `research` | Runs evidence-backed investigation with a main-agent-first flow and conditional `scout` and `analyst` workers when the work cleanly parallelizes, reusing `skeptic` for adversarial review. | `.codex/skills/research/SKILL.md` |
 | `research-pro` | Consults ChatGPT Pro via chatgpt.com Projects for architecture and research-heavy decisions. | `.codex/skills/research-pro/SKILL.md` |
 | `review-loop` | Shared bounded review -> fix -> verify -> re-review engine for concrete diffs and repaired heads. | `.codex/skills/review-loop/SKILL.md` |
 | `review-prepare` | Wraps `review-loop` for pre-PR self-review and branch readiness checks. | `.codex/skills/review-prepare/SKILL.md` |
@@ -53,8 +55,8 @@ The current tree mainly ships reusable skills plus maintainer-only validation he
 | `scrapling` | Provides fallback scraping guidance when lightweight fetch paths are blocked or incomplete. | `.codex/skills/scrapling/SKILL.md` |
 | `skill-routing` | Establishes skill discovery, selection order, and primary-vs-overlay loading discipline. | `.codex/skills/skill-routing/SKILL.md` |
 | `verification-before-completion` | Enforces evidence-first completion checks before claiming readiness or success. | `.codex/skills/verification-before-completion/SKILL.md` |
-| `workspace-reconcile` | Reconciles conflicting `.workspaces/*` lanes into one surviving implementation lane. | `.codex/skills/workspace-reconcile/SKILL.md` |
-| `workspaces` | Creates, reuses, and closes clone-backed `.workspaces/*` lanes for non-read-only work. | `.codex/skills/workspaces/SKILL.md` |
+| `worktree-reconcile` | Reconciles conflicting `.worktrees/*` lanes into one surviving implementation lane. | `.codex/skills/worktree-reconcile/SKILL.md` |
+| `worktrees` | Creates, reuses, and closes worktree-backed `.worktrees/*` lanes for non-read-only work. | `.codex/skills/worktrees/SKILL.md` |
 
 ## Contributing
 
@@ -80,6 +82,8 @@ To add or update Codex-oriented content:
 - `.codex/skills/<skill-name>/...` stores installable runtime assets referenced by `SKILL.md`, such as scripts, templates, schemas, or references.
 - `dev/<skill-name>/...` stores repo-local smoke tests and maintainer validation helpers that are not part of the installed runtime payload.
 - Codex plugin assets can include `.codex-plugin/plugin.json`, `.app.json`, `.mcp.json`, `skills/`, and `assets/`, with marketplace metadata layered on top when distribution is needed.
+- `plugins/research/` is the current repo-local research plugin shell. It packages plugin-local manifest metadata, a starter `research` skill surface, and the `analyst` worker payload.
+- `.agents/plugins/marketplace.json` is the repo-local marketplace entrypoint for testing installable plugins from this repository.
 
 ## Support Me
 
