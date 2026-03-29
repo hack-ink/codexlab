@@ -5,12 +5,12 @@
   "status": "decision-ready",
   "decision_ready": true,
   "research_mode": "structured",
-  "challenge_mode": "plugin_skeptic",
+  "challenge_mode": "host_skeptic",
   "confidence": "medium",
   "worker_usage": {
     "scout": "not_used",
     "analyst": "not_used",
-    "skeptic": "plugin_skeptic"
+    "skeptic": "host_skeptic"
   },
   "summary": "[TODO]",
   "recommendation": "[TODO]",

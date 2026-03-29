@@ -18,8 +18,8 @@ Codex-first repository for reusable workflow assets, runtime guidance, and packa
 - Repository scope is broader than skills alone and includes Codex-facing assets such as `~/.codex/config.toml`, `~/.codex/AGENTS.md`, `~/.codex/skills/`, and plugin-related metadata and packaging.
 - Tracks current Codex plugin packaging concepts, including `.codex-plugin/plugin.json`, `.app.json`, `.mcp.json`, and marketplace-oriented distribution flows.
 - Keeps machine-first workflow primitives for planning, review, delivery, and worktree lifecycle management explicit and composable.
-- Encodes a single-agent-first research model, with conditional dynamic `scout`, `analyst`, and `skeptic` workers owned by the plugin or skill that dispatches them.
-- Includes a repo-local standard `research` plugin shell under `.codex/plugins/research/` plus `.agents/plugins/marketplace.json` for repo-scoped plugin installation and iteration, with bounded research, rival-hypothesis framing, verification, adversarial review, and contract-defined `docs/research/` artifacts.
+- Encodes a single-agent-first research model, with delayed-slicing fanout for `scout` and `analyst` plus a preferred late `skeptic` pass provided by the codexlab host runtime.
+- Includes a repo-local standard `research` plugin shell under `.codex/plugins/research/` plus `.agents/plugins/marketplace.json` for repo-scoped plugin installation and iteration, with bounded research, rival-hypothesis framing, verification, adversarial review, contract-defined `docs/research/` artifacts, and strong binding to the codexlab host runtime.
 
 ## Codex Scope
 
@@ -45,7 +45,7 @@ The current tree mainly ships reusable skills plus maintainer-only validation he
 | `plan-writing` | Creates or revises persisted `plan/1` files under `docs/plans/`. | `.codex/skills/plan-writing/SKILL.md` |
 | `pr-land` | Handles PR readiness checks, sync decisions, and merge execution without swallowing downstream closeout. | `.codex/skills/pr-land/SKILL.md` |
 | `python-policy` | Defines Python runtime boundaries and project-configured quality gates. | `.codex/skills/python-policy/SKILL.md` |
-| `research` | Plugin-local bounded research workflow with a main-agent-first flow, conditional `scout` and `analyst` workers, rival-hypothesis framing, verification, and adversarial review. | `.codex/plugins/research/skills/research/SKILL.md` |
+| `research` | Plugin-local bounded research workflow with a main-agent-first flow, delayed-slicing `scout` and `analyst` fanout, rival-hypothesis framing, verification, and a preferred late adversarial review. | `.codex/plugins/research/skills/research/SKILL.md` |
 | `research-pro` | Consults ChatGPT Pro via chatgpt.com Projects for architecture and research-heavy decisions. | `.codex/skills/research-pro/SKILL.md` |
 | `review-loop` | Shared bounded review -> fix -> verify -> re-review engine for concrete diffs and repaired heads. | `.codex/skills/review-loop/SKILL.md` |
 | `review-prepare` | Wraps `review-loop` for pre-PR self-review and branch readiness checks. | `.codex/skills/review-prepare/SKILL.md` |
@@ -82,7 +82,8 @@ To add or update Codex-oriented content:
 - `.codex/skills/<skill-name>/...` stores installable runtime assets referenced by `SKILL.md`, such as scripts, templates, schemas, or references.
 - `dev/<skill-name>/...` stores repo-local smoke tests and maintainer validation helpers that are not part of the installed runtime payload.
 - Codex plugin assets can include `.codex-plugin/plugin.json`, `.app.json`, `.mcp.json`, `skills/`, and `assets/`, with marketplace metadata layered on top when distribution is needed.
-- `.codex/plugins/research/` is the current repo-local standard research plugin shell. It packages plugin-local manifest metadata, a bounded `research` workflow surface with rival-hypothesis framing and key-claim verification, dynamic `scout` / `analyst` / `skeptic` worker payloads, report persistence templates, and a run validator.
+- `.codex/agents/` stores the codexlab host-level canonical child-agent roles such as `scout`, `analyst`, and `skeptic`.
+- `.codex/plugins/research/` is the current repo-local standard research plugin shell. It packages plugin-local manifest metadata, a bounded `research` workflow surface with rival-hypothesis framing and key-claim verification, report persistence templates, and a run validator, and relies on the codexlab host runtime for child-agent bindings.
 - `docs/research/` is the runtime-created default persistence root for research runs, including human-readable reports and machine-readable `report.json` summaries.
 - `.agents/plugins/marketplace.json` is the repo-local marketplace entrypoint for testing installable plugins from this repository.
 - For personal installs outside this repository, use `~/.agents/plugins/marketplace.json` plus `~/.codex/plugins/<plugin-name>/`, then restart Codex and install from the personal marketplace.

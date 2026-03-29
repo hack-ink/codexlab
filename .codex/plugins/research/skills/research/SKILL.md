@@ -1,6 +1,6 @@
 ---
 name: research
-description: Use for bounded, decision-oriented research inside the research plugin. Default to one main agent, add scout or analyst only when the work cleanly parallelizes, frame rival hypotheses before broad search, verify key claims before finalizing, run a mandatory challenge pass, and end with either a decision-ready answer or an explicit not-decision-ready result.
+description: Use for bounded, decision-oriented research inside the research plugin. Start with one main agent and a brief, add scout or analyst only for clearly independent research slices, prefer a late skeptic pass before recommendation, verify key claims before finalizing, and end with either a decision-ready answer or an explicit not-decision-ready result.
 ---
 
 # Research
@@ -38,7 +38,7 @@ Turn an ambiguous question into a decision-ready recommendation with enough evid
 ## Required artifacts
 
 Use the plugin-local templates in this plugin's `templates/` directory as the execution contract.
-Use the plugin-local files in this plugin's `agents/` directory as the worker configuration source when dispatching dynamic child agents.
+Use the codexlab host-level `scout`, `analyst`, and `skeptic` agent roles from `.codex/agents/` plus `.codex/config.toml` as the worker configuration source when dispatching child agents.
 Persist every run under the active project root at `docs/research/`.
 
 Always use:
@@ -56,19 +56,25 @@ Every run must write its artifacts to `docs/research/runs/YYYY-MM-DD_<slug>/` an
 ## Worker model
 
 - Default to one main research agent.
-- Use the plugin-local `scout` only for parallel source gathering.
-- Use the plugin-local `analyst` only for independent option evaluation.
-- Use the plugin-local `skeptic` only for a separate adversarial pass; otherwise run the challenge pass locally.
-- Dispatch worker agents dynamically from this plugin's bundled `agents/*.toml` files instead of relying on host-level agent registration.
+- The main agent owns framing, the canonical brief, the evidence map, and the final report.
+- Do not fan out before the brief is clear enough to expose genuinely independent research slices.
+- Use the host-level `scout` only for parallel source gathering.
+- Use the host-level `analyst` only for independent option evaluation.
+- Use the host-level `skeptic` late in the run to challenge a draft recommendation or narrowed option set; otherwise run the challenge pass locally.
+- Dispatch worker agents through the codexlab host-level agent registration in `.codex/config.toml`, not through plugin-bundled agent files.
 - Keep one canonical brief, one canonical evidence map, and one final report owned by the main agent.
+- Use workers to isolate independent slices, not to parallelize every phase of the run and not to write parallel sections of the final report.
 
 ## Worker trigger rules
 
-- Dispatch the plugin-local `scout` when bounded research still needs at least two independent external source clusters or at least three decision-critical external claims after the brief and read-first pass.
-- Dispatch the plugin-local `analyst` when at least two viable options remain and each option can be evaluated independently enough to improve the next comparison.
-- Dispatch the plugin-local `skeptic` before any decision-ready recommendation when the risk if wrong is `medium` or `high`, or when more than one viable option still survives verification.
+- After the brief and read-first pass, dispatch workers only when the task now exposes one or more clearly independent slices whose outputs can be merged back into the canonical evidence map and final report without overlap.
+- Dispatch the host-level `scout` when external research remains and it can be cleanly split into independent source or topic slices.
+- Dispatch the host-level `analyst` when at least two viable options remain and each option can be evaluated independently enough to improve the next comparison.
+- Prefer dispatching the host-level `skeptic` after the evidence map exists and a draft recommendation or narrowed option set is available.
+- Before any decision-ready recommendation, dispatch the host-level `skeptic` unless the run is low-risk and purely descriptive.
 - If a trigger fires and child-agent execution is available, dispatch the corresponding worker instead of silently doing the same pass locally.
 - If a trigger fires but child-agent execution is unavailable, continue with a local fallback and record that downgrade in both `final-report.md` and `report.json`.
+- Do not dispatch overlapping workers that would gather the same evidence or argue the same case in parallel.
 
 ## Worker output contract
 
@@ -146,7 +152,7 @@ Every run must write its artifacts to `docs/research/runs/YYYY-MM-DD_<slug>/` an
    - Stay within the brief's time, source, and search-round budget.
    - Search for confirming and disconfirming evidence instead of only supporting evidence.
    - Stop gathering once the evidence is sufficient to evaluate the leading options and rival hypotheses.
-   - If the `scout` trigger rule fires, dispatch the plugin-local `scout` and wait for one bounded collect step before finalizing the evidence map.
+   - If independent external research slices remain after the brief and read-first pass, dispatch the host-level `scout` for those slices and wait for one bounded collect step before finalizing the evidence map.
 
 5. Build the evidence map
    - Record each major claim in `evidence-map.md`.
@@ -158,7 +164,7 @@ Every run must write its artifacts to `docs/research/runs/YYYY-MM-DD_<slug>/` an
    - Fill `option-analysis.md` only when the recommendation compares multiple viable options.
    - Keep each option analysis comparative and brief.
    - For any option that enters the final comparison, cite supporting and disconfirming evidence IDs from the canonical evidence map.
-   - If the `analyst` trigger rule fires, dispatch the plugin-local `analyst` for each independently evaluable option and do one bounded collect step before final comparison.
+   - If multiple viable options remain and they can be evaluated independently, dispatch the host-level `analyst` for those options and do one bounded collect step before final comparison.
 
 7. Verify key claims
    - Re-check the most decision-critical claims against the cited sources before finalizing.
@@ -169,7 +175,7 @@ Every run must write its artifacts to `docs/research/runs/YYYY-MM-DD_<slug>/` an
    - If a decision-critical claim cannot be re-verified at all, mark the result `not decision-ready`.
 
 8. Run the challenge pass
-   - If the `skeptic` trigger rule fires, dispatch the plugin-local `skeptic` and do one bounded collect step before locking the recommendation.
+   - Once the evidence map exists and a draft recommendation or narrowed option set is available, prefer dispatching the host-level `skeptic` and do one bounded collect step before locking the recommendation.
    - Ask:
      - What is the strongest case against the current recommendation?
      - Which runner-up option could plausibly be better?

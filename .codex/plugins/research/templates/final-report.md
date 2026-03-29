@@ -14,10 +14,10 @@
 - Confidence:
 - Confidence rationale:
 - Worker usage:
-  - Scout (`not_used`, `plugin_scout`, or `local_fallback`):
-  - Analyst (`not_used`, `plugin_analyst`, or `local_fallback`):
-  - Skeptic (`not_used`, `plugin_skeptic`, or `local_fallback`):
-- Challenge mode (`plugin_skeptic` or `local_fallback`):
+  - Scout (`not_used`, `host_scout`, or `local_fallback`):
+  - Analyst (`not_used`, `host_analyst`, or `local_fallback`):
+  - Skeptic (`not_used`, `host_skeptic`, or `local_fallback`):
+- Challenge mode (`host_skeptic` or `local_fallback`):
 - Counterevidence:
   - Evidence IDs:
 - Why not the runner-up:

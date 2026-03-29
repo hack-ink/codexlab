@@ -78,9 +78,9 @@ def main() -> None:
             fail(f"{label} does not mention run_id {run_id}")
 
     challenge_mode = report.get("challenge_mode")
-    if challenge_mode not in {"plugin_skeptic", "local_fallback"}:
-        fail("report.json challenge_mode must be plugin_skeptic or local_fallback")
-    if f"Challenge mode (`plugin_skeptic` or `local_fallback`): `{challenge_mode}`" not in final_report:
+    if challenge_mode not in {"host_skeptic", "local_fallback"}:
+        fail("report.json challenge_mode must be host_skeptic or local_fallback")
+    if f"Challenge mode (`host_skeptic` or `local_fallback`): `{challenge_mode}`" not in final_report:
         fail("final-report.md challenge mode does not match report.json")
 
     confidence = report.get("confidence")
@@ -96,9 +96,9 @@ def main() -> None:
     if not isinstance(worker_usage, dict):
         fail("report.json worker_usage missing")
     worker_patterns = {
-        "scout": r"- Scout \(`not_used`, `plugin_scout`, or `local_fallback`\): `([^`]+)`",
-        "analyst": r"- Analyst \(`not_used`, `plugin_analyst`, or `local_fallback`\): `([^`]+)`",
-        "skeptic": r"- Skeptic \(`not_used`, `plugin_skeptic`, or `local_fallback`\): `([^`]+)`",
+        "scout": r"- Scout \(`not_used`, `host_scout`, or `local_fallback`\): `([^`]+)`",
+        "analyst": r"- Analyst \(`not_used`, `host_analyst`, or `local_fallback`\): `([^`]+)`",
+        "skeptic": r"- Skeptic \(`not_used`, `host_skeptic`, or `local_fallback`\): `([^`]+)`",
     }
     for key, pattern in worker_patterns.items():
         match = re.search(pattern, final_report)
