@@ -50,9 +50,6 @@ bearer_token_env_var = "CONTEXT7_API_KEY"
 url = "https://mcp.devin.ai/mcp"
 bearer_token_env_var = "DEEPWIKI_API_KEY"
 
-[mcp_servers.figma]
-url = "https://mcp.figma.com/mcp"
-
 [mcp_servers.linear_hackink]
 url = "https://mcp.linear.app/mcp"
 bearer_token_env_var = "LINEAR_API_KEY_HACKINK"
@@ -65,12 +62,24 @@ bearer_token_env_var = "LINEAR_API_KEY_HELIXBOX"
 hide_full_access_warning = true
 hide_rate_limit_model_nudge = true
 
-# [notice.model_migrations]
-# "gpt-5.4" = "gpt-5.4-codex"
+[plugins."github@openai-curated"]
+enabled = true
+
+[plugins."linear@openai-curated"]
+enabled = true
+
+[plugins."hugging-face@openai-curated"]
+enabled = true
+
+[plugins."stripe@openai-curated"]
+enabled = true
+
+[plugins."build-ios-apps@openai-curated"]
+enabled = true
+
+[plugins."build-web-apps@openai-curated"]
+enabled = true
 
 [tui]
 status_line = ["model-with-reasoning", "current-dir", "git-branch", "context-remaining", "five-hour-limit", "weekly-limit", "used-tokens", "codex-version"]
 theme = "tokyonight_night"
-
-[plugins."github@openai-curated"]
-enabled = true
