@@ -130,7 +130,7 @@
   - any external review feedback for that head has been handled through `review-repair`, with no owned unresolved repair work still blocking progress
 - If the branch changes after an external-review repair round, re-enter the review flow for the new head instead of continuing downstream on stale review state.
 - Do not enter `pr-land`, `delivery-closeout`, or `worktrees` cleanup until the current head's review flow is complete.
-- If the shared `review-loop`, `review-prepare`, or `review-repair` still finds new bugs after three rounds, stop patch-on-patch churn and escalate to `research` for a deeper architecture or design pass. If the result changes module boundaries, interfaces, data flow, or test shape, return to `plan-writing` only when an active saved plan is part of the task.
+- If the shared `review-loop`, `review-prepare`, or `review-repair` still finds new bugs after three rounds, stop patch-on-patch churn and escalate to the `research` plugin for a deeper architecture or design pass. If the result changes module boundaries, interfaces, data flow, or test shape, return to `plan-writing` only when an active saved plan is part of the task.
 - Waiting, polling, timer cadence, and retry policy for review or CI remain orchestration concerns. Skills should return state and let `maestro` re-enter later.
 
 ### PR Merge

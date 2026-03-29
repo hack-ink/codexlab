@@ -1,0 +1,39 @@
+{
+  "name": "research",
+  "version": "0.1.0",
+  "description": "Single-agent-first bounded research plugin for evidence-backed investigation, rival-hypothesis testing, and option analysis.",
+  "author": {
+    "name": "hack-ink",
+    "email": "opensource@hack.ink",
+    "url": "https://github.com/hack-ink"
+  },
+  "homepage": "https://github.com/hack-ink/codexlab",
+  "repository": "https://github.com/hack-ink/codexlab",
+  "license": "GPL-3.0",
+  "keywords": [
+    "research",
+    "analysis",
+    "codex"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Research",
+    "shortDescription": "Bounded, evidence-backed research with falsification and verification steps.",
+    "longDescription": "Repo-local standard research plugin for Codex. Defaults to one main research agent, adds scout and analyst workers only when the work cleanly parallelizes, frames rival hypotheses before broad search, verifies key claims before finalizing, and reuses skeptic for adversarial review before producing either a decision-ready result or an explicit not-decision-ready outcome.",
+    "developerName": "hack-ink",
+    "category": "Research",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://github.com/hack-ink/codexlab",
+    "privacyPolicyURL": "https://github.com/hack-ink/codexlab",
+    "termsOfServiceURL": "https://github.com/hack-ink/codexlab",
+    "defaultPrompt": [
+      "Research this topic and give me a decision-ready recommendation.",
+      "Compare these options with tradeoffs and confidence.",
+      "Investigate this tool or repo and summarize best practices."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

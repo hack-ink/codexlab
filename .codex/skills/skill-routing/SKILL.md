@@ -67,12 +67,12 @@ description: Use at the start of a task, before clarifying questions, or before 
 - An additive overlay skill improves routing, context isolation, verification, or bounded parallel evidence gathering without taking ownership of the task.
 - `scout-skeptic` is an additive overlay skill. It uses a checkpoint pattern, stays local by default, and dispatches narrow read-only scout/skeptic child-agent objectives only when the first probe still leaves multiple independent read-only questions that the main thread can exploit in parallel.
 - Apply the "smallest set" rule within a class, not across all skills globally.
-- Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies.
+- Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, the plugin-provided `research`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies.
 
 ## Primary workflow references for overlay examples
 
 - `systematic-debugging`
-- `research`
+- plugin-provided `research`
 - `verification-before-completion`
 - `worktrees`
 - `worktree-reconcile`

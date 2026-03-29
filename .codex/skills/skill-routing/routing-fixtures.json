@@ -13,7 +13,7 @@
       "policy_reason_needles": [
         "Fix this bug",
         "At least two independent read-only questions, hypotheses, or evidence gaps remain.",
-        "Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies."
+        "Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, the plugin-provided `research`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies."
       ]
     },
     {
@@ -28,11 +28,11 @@
       "policy_reason_needles": [
         "read-only review pass before trusting a fix, explanation, or closeout claim",
         "The main thread still has direct work, synthesis, or another verification step to do while the child agents run.",
-        "Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, `research`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies."
+        "Do not exclude `scout-skeptic` solely because a primary workflow skill such as `systematic-debugging`, the plugin-provided `research`, `verification-before-completion`, `review-prepare`, `review-repair`, or `pr-land` already applies."
       ]
     },
     {
-      "name": "research stacks overlay when exploration would bloat context",
+      "name": "plugin research stacks overlay when exploration would bloat context",
       "prompt": "Research how the config, docs, and implementation interact across multiple files, and gather read-only evidence without flooding the main thread context.",
       "expect_primary_process_skills": [
         "research"
@@ -43,7 +43,7 @@
       "policy_reason_needles": [
         "multiple files, questions, or evidence sources can be inspected in parallel",
         "reduce context bloat",
-        "This skill commonly stacks with `systematic-debugging`, `research`, and `verification-before-completion`."
+        "This skill commonly stacks with `systematic-debugging`, the plugin-provided `research`, and `verification-before-completion`."
       ]
     },
     {

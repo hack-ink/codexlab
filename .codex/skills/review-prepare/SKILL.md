@@ -56,8 +56,8 @@ Every emitted result must use the stable `head_sha` field name for the reviewed 
 ## Three-round escalation
 
 - This wrapper inherits the three-round limit from `review-loop`.
-- If `review-loop` returns `needs_architecture_review`, keep that status here and escalate to `research`, not `research-pro`.
-- If `research` recommends structural changes to module boundaries, interfaces, data flow, or tests, let the caller route that result into whatever planning workflow is active.
+- If `review-loop` returns `needs_architecture_review`, keep that status here and escalate to the `research` plugin, not `research-pro`.
+- If the `research` plugin recommends structural changes to module boundaries, interfaces, data flow, or tests, let the caller route that result into whatever planning workflow is active.
 
 ## Recommended checks
 

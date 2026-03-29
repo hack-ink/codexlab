@@ -1,0 +1,37 @@
+# Research Brief
+
+- Question:
+- Decision to make:
+- Why now:
+- Provided materials:
+- Confirmed pain points:
+- Constraints:
+- Success criteria:
+- Non-goals:
+- Hypothesis status (`structured` or `exploratory`):
+- Primary working hypothesis:
+- Main rival hypotheses:
+- What evidence would falsify each hypothesis:
+- Freshness requirement:
+- Preferred source hierarchy:
+- Source inclusion or exclusion rules:
+- Risk level if wrong:
+- Time budget:
+- Source budget:
+- Maximum search rounds:
+- What counts as decision-ready:
+- Stop rule:
+- Blocking unknowns:
+- Initial search plan:
+- Initial exploratory scan (only if `exploratory`):
+- Rewritten hypotheses after exploratory scan:
+- Key claims that must be independently re-checked before finalizing:
+
+Notes:
+- Keep this brief short enough to guide the whole bounded pass.
+- Define the decision before broad search.
+- If the task is exploratory, mark it explicitly and derive candidate hypotheses after the smallest useful initial scan.
+- Do not enter the main bounded search with vague exploratory hypotheses; rewrite them after the initial scan or stop.
+- Write rival hypotheses before broad search once they are credible so the search plan is not anchored to one thesis.
+- Write the budget and stop rule before broad search so bounded research stays bounded.
+- Record assumptions here if they are not blocking.

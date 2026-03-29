@@ -1,6 +1,6 @@
 ---
 name: review-loop
-description: Use when a review workflow needs the shared bounded review -> fix -> verify -> re-review mechanics on a concrete diff or repaired branch state. Owns round structure, head-SHA binding, owned-fix discipline, and three-round escalation to `research`, but not PR, thread, merge, or closeout lifecycle.
+description: Use when a review workflow needs the shared bounded review -> fix -> verify -> re-review mechanics on a concrete diff or repaired branch state. Owns round structure, head-SHA binding, owned-fix discipline, and three-round escalation to the `research` plugin, but not PR, thread, merge, or closeout lifecycle.
 ---
 
 # Review Loop
@@ -67,8 +67,8 @@ Every emitted result must use the stable `head_sha` field name for the reviewed 
 - Count one round as: review -> fix -> re-verify -> re-review.
 - If three consecutive rounds still produce new bugs, owned findings, or structural problems, stop patch-on-patch repair.
 - Return `needs_architecture_review`.
-- Default escalation target is `research`.
-- If `research` recommends structural changes to module boundaries, interfaces, data flow, or test shape, let the caller route that result into whatever planning workflow is active instead of continuing the loop.
+- Default escalation target is the `research` plugin.
+- If the `research` plugin recommends structural changes to module boundaries, interfaces, data flow, or test shape, let the caller route that result into whatever planning workflow is active instead of continuing the loop.
 
 ## Red flags
 
@@ -76,4 +76,4 @@ Every emitted result must use the stable `head_sha` field name for the reviewed 
 - Skipping the adversarial reviewer pass because the implementation pass looked straightforward
 - Treating external review claims as automatically correct without validating them
 - Letting one stale head SHA stand in for multiple reviewed states
-- Continuing beyond three rounds of new findings without escalating to `research`
+- Continuing beyond three rounds of new findings without escalating to the `research` plugin

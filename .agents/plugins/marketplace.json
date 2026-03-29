@@ -1,0 +1,20 @@
+{
+  "name": "codexlab-local",
+  "interface": {
+    "displayName": "codexlab local"
+  },
+  "plugins": [
+    {
+      "name": "research",
+      "source": {
+        "source": "local",
+        "path": "./plugins/research"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Research"
+    }
+  ]
+}

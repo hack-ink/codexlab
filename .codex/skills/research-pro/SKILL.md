@@ -73,7 +73,7 @@ Get decision-grade research and architecture recommendations from ChatGPT Pro, t
 
 ## Procedure
 
-### A) Build the Pro prompt (mirror `research` methodology)
+### A) Build the Pro prompt (mirror the standard `research` plugin methodology)
 
 Ask Pro to follow this workflow and to be explicit about evidence:
 

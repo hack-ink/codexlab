@@ -1,0 +1,54 @@
+# Final Report
+
+- TL;DR:
+- Research mode (`structured` or `exploratory`):
+- Problem statement:
+- Confirmed pain points:
+- What we know:
+- Constraints and success criteria:
+- Options considered:
+- Recommendation:
+  - Supporting evidence IDs:
+- Confidence:
+- Confidence rationale:
+- Counterevidence:
+  - Evidence IDs:
+- Why not the runner-up:
+  - Evidence IDs:
+- What would change my mind:
+  - Evidence IDs:
+- Independent verification checks:
+  - Evidence IDs:
+- Decision-critical claims lacking independent corroboration:
+- Falsified or weakened hypotheses:
+- Budget used:
+- Stop reason:
+- Protocol deviations from the original brief:
+- Limitations:
+- Risks and mitigations:
+- Open questions:
+- Next steps:
+- Evidence map artifact or location:
+- Search log:
+  - Query or path:
+  - Date:
+  - Filters or domains:
+  - Result summary:
+  - Negative result or abandoned path:
+  - Why it mattered:
+
+Notes:
+- If the answer is unsafe, say `not decision-ready` instead of forcing a recommendation.
+- The recommendation should survive a lightweight adversarial read.
+- Use a stable confidence rubric:
+  - `high`: multiple independent sources support the critical claims, key claims were re-checked, and contradictory evidence does not change the recommendation.
+  - `medium`: evidence is directionally strong but at least one critical claim, contradiction, or assumption remains unresolved.
+  - `low`: the recommendation is tentative, key claims are weakly supported, or material uncertainty remains.
+- In `Independent verification checks`, distinguish independent re-checks from same-source re-checks.
+- Do not report `high` confidence if any decision-critical claim lacks independent corroboration.
+- Every major conclusion, counterevidence item, and verification check should cite evidence IDs from the evidence map.
+- Treat the evidence map as the canonical source register; do not duplicate full locator/version/snapshot metadata here.
+- Record whether the bounded budget was sufficient or whether missing evidence prevented a safe closure.
+- If the workflow deviated from the original brief, source hierarchy, or stop rule, record the deviation and why it was justified.
+- Keep the search log reproducible: include query, date, and any important filters or domains used.
+- Keep the search log honest: include negative results and abandoned paths when they materially affect coverage or confidence.

@@ -160,9 +160,9 @@ gh api graphql \
 - Count one round as: external review feedback -> triage -> `review-loop` repair batch -> next review pass.
 - If either the external-review loop or the `review-loop` repair pass reaches `needs_architecture_review`, stop incremental patching.
 - Return `needs_architecture_review`.
-- Default escalation target is `research`.
-- Use `research` to look for the deeper architecture or design cause instead of continuing patch-on-patch churn.
-- If `research` changes interfaces, data flow, module ownership, or test shape, keep this skill at `needs_architecture_review` and let the caller route the result into whatever planning workflow is active.
+- Default escalation target is the `research` plugin.
+- Use the `research` plugin to look for the deeper architecture or design cause instead of continuing patch-on-patch churn.
+- If the `research` plugin changes interfaces, data flow, module ownership, or test shape, keep this skill at `needs_architecture_review` and let the caller route the result into whatever planning workflow is active.
 
 ## Thread discipline
 
