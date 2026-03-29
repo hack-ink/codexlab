@@ -33,6 +33,7 @@ If unsure, write the local checkpoint explicitly and use that record to justify 
 
 - The main thread owns the task from start to finish.
 - `scout` and `skeptic` are read-only checkpoint roles.
+- Use the skill-local files in this skill's `agents/` directory as the worker configuration source when dispatching dynamic child agents.
 - Use child-agent fanout as a thresholded mechanism, not a vague preference.
 - When the fanout threshold is met, dispatch narrow read-only child-agent objectives.
 - When child agents are unnecessary or unavailable, run the same scout/skeptic passes locally in the main thread.

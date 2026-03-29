@@ -1,7 +1,7 @@
 {
   "name": "research",
   "version": "0.1.0",
-  "description": "Single-agent-first bounded research plugin for evidence-backed investigation, rival-hypothesis testing, and option analysis.",
+  "description": "Bounded research plugin with self-contained dynamic scout, skeptic, and analyst workers for evidence-backed investigation.",
   "author": {
     "name": "hack-ink",
     "email": "opensource@hack.ink",
@@ -18,8 +18,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Research",
-    "shortDescription": "Bounded, evidence-backed research with falsification and verification steps.",
-    "longDescription": "Repo-local standard research plugin for Codex. Defaults to one main research agent, adds scout and analyst workers only when the work cleanly parallelizes, frames rival hypotheses before broad search, verifies key claims before finalizing, and reuses skeptic for adversarial review before producing either a decision-ready result or an explicit not-decision-ready outcome.",
+    "shortDescription": "Bounded research with self-contained dynamic workers and traceable evidence.",
+    "longDescription": "Repo-local standard research plugin for Codex. Defaults to one main research agent, dynamically dispatches plugin-local scout, analyst, and skeptic workers only when the work cleanly parallelizes, frames rival hypotheses before broad search, verifies key claims before finalizing, and runs an adversarial review before producing either a decision-ready result or an explicit not-decision-ready outcome.",
     "developerName": "hack-ink",
     "category": "Research",
     "capabilities": [

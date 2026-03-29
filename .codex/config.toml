@@ -13,18 +13,6 @@ websearch = "cached"
 max_threads = 48
 max_depth = 1
 
-[agents.analyst]
-description = "Analyst: read-only child agent for evaluating one option, hypothesis, or scenario at a time."
-config_file = "./agents/analyst.toml"
-
-[agents.scout]
-description = "Scout: read-only child agent for exploration, repo probing, reproductions, and evidence gathering."
-config_file = "./agents/scout.toml"
-
-[agents.skeptic]
-description = "Skeptic: read-only child agent for critique, gap-finding, adversarial review, and verification."
-config_file = "./agents/skeptic.toml"
-
 [features]
 apply_patch_freeform = true
 artifact = true

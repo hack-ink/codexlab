@@ -38,24 +38,72 @@ Turn an ambiguous question into a decision-ready recommendation with enough evid
 ## Required artifacts
 
 Use the plugin-local templates in this plugin's `templates/` directory as the execution contract.
+Use the plugin-local files in this plugin's `agents/` directory as the worker configuration source when dispatching dynamic child agents.
+Persist every run under the active project root at `docs/research/`.
 
 Always use:
 - `research-brief.md`
 - `evidence-map.md`
 - `final-report.md`
+- `report.json`
 
 Use only when needed:
 - `option-analysis.md` for recommendations that compare multiple viable options
 
 If the task uses workers, their output must fold back into the same brief, evidence map, and final report.
+Every run must write its artifacts to `docs/research/runs/YYYY-MM-DD_<slug>/` and update `docs/research/index.json`.
 
 ## Worker model
 
 - Default to one main research agent.
-- Use `scout` only for parallel source gathering.
-- Use `analyst` only for independent option evaluation.
-- Reuse `skeptic` only for a separate adversarial pass; otherwise run the challenge pass locally.
+- Use the plugin-local `scout` only for parallel source gathering.
+- Use the plugin-local `analyst` only for independent option evaluation.
+- Use the plugin-local `skeptic` only for a separate adversarial pass; otherwise run the challenge pass locally.
+- Dispatch worker agents dynamically from this plugin's bundled `agents/*.toml` files instead of relying on host-level agent registration.
 - Keep one canonical brief, one canonical evidence map, and one final report owned by the main agent.
+
+## Worker trigger rules
+
+- Dispatch the plugin-local `scout` when bounded research still needs at least two independent external source clusters or at least three decision-critical external claims after the brief and read-first pass.
+- Dispatch the plugin-local `analyst` when at least two viable options remain and each option can be evaluated independently enough to improve the next comparison.
+- Dispatch the plugin-local `skeptic` before any decision-ready recommendation when the risk if wrong is `medium` or `high`, or when more than one viable option still survives verification.
+- If a trigger fires and child-agent execution is available, dispatch the corresponding worker instead of silently doing the same pass locally.
+- If a trigger fires but child-agent execution is unavailable, continue with a local fallback and record that downgrade in both `final-report.md` and `report.json`.
+
+## Worker output contract
+
+- `scout` output must provide:
+  - source candidates or evidence gathered
+  - source quality or credibility notes
+  - missing evidence or unresolved gaps
+- `analyst` output must provide:
+  - option name
+  - benefits, risks, assumptions, and rejection conditions
+  - supporting and disconfirming evidence IDs or the evidence needed to create them
+- `skeptic` output must provide:
+  - strongest counter-thesis
+  - contradictory evidence or missing evidence
+  - weakest assumption in the current recommendation
+  - flip condition that would change the recommendation
+- The main agent must merge worker output back into the canonical brief, evidence map, option analysis, final report, and report.json before finalizing.
+- `report.json` must be derived from the final canonical brief, evidence map, option analysis, and final report rather than written as an independent parallel summary.
+
+## Persistence contract
+
+- The default persistence root is `docs/research/` under the active project root.
+- If `docs/research/` does not exist, create it before writing the first run.
+- If `docs/research/index.json` does not exist, initialize it as:
+  - `{"schema":"research-index/1","runs":[]}`
+- Create one run directory per research task at `docs/research/runs/YYYY-MM-DD_<slug>/`.
+- Always write:
+  - `research-brief.md`
+  - `evidence-map.md`
+  - `final-report.md`
+  - `report.json`
+- Write `option-analysis.md` when multiple viable options were compared.
+- Update `docs/research/index.json` with the new run ID, date, status, question, confidence, and artifact paths.
+- Before claiming success, run the plugin-local consistency validator at `scripts/validate_research_run.py --run-dir <run-dir>` when local scripting is available; otherwise perform the same checks manually.
+- Do not claim success until the run artifacts are written.
 
 ## Hard rules
 
@@ -73,7 +121,9 @@ If the task uses workers, their output must fold back into the same brief, evide
 ## Workflow
 
 1. Build the brief
+   - If `docs/research/` or `docs/research/index.json` is missing, create and initialize them first.
    - Fill `research-brief.md`.
+   - Assign a run ID and run directory under `docs/research/runs/YYYY-MM-DD_<slug>/`.
    - Capture the decision, success criteria, constraints, freshness requirement, non-goals, and bounded budget.
    - State the primary working hypothesis, the main rival hypotheses, and what evidence would falsify each one.
    - If the task is exploratory and the hypotheses are not yet credible, mark the brief as exploratory and define the smallest initial scan needed to derive candidate hypotheses.
@@ -96,6 +146,7 @@ If the task uses workers, their output must fold back into the same brief, evide
    - Stay within the brief's time, source, and search-round budget.
    - Search for confirming and disconfirming evidence instead of only supporting evidence.
    - Stop gathering once the evidence is sufficient to evaluate the leading options and rival hypotheses.
+   - If the `scout` trigger rule fires, dispatch the plugin-local `scout` and wait for one bounded collect step before finalizing the evidence map.
 
 5. Build the evidence map
    - Record each major claim in `evidence-map.md`.
@@ -107,7 +158,7 @@ If the task uses workers, their output must fold back into the same brief, evide
    - Fill `option-analysis.md` only when the recommendation compares multiple viable options.
    - Keep each option analysis comparative and brief.
    - For any option that enters the final comparison, cite supporting and disconfirming evidence IDs from the canonical evidence map.
-   - Use `analyst` only when those option evaluations can run independently.
+   - If the `analyst` trigger rule fires, dispatch the plugin-local `analyst` for each independently evaluable option and do one bounded collect step before final comparison.
 
 7. Verify key claims
    - Re-check the most decision-critical claims against the cited sources before finalizing.
@@ -118,6 +169,7 @@ If the task uses workers, their output must fold back into the same brief, evide
    - If a decision-critical claim cannot be re-verified at all, mark the result `not decision-ready`.
 
 8. Run the challenge pass
+   - If the `skeptic` trigger rule fires, dispatch the plugin-local `skeptic` and do one bounded collect step before locking the recommendation.
    - Ask:
      - What is the strongest case against the current recommendation?
      - Which runner-up option could plausibly be better?
@@ -127,15 +179,22 @@ If the task uses workers, their output must fold back into the same brief, evide
 
 9. Write the final report
    - Fill `final-report.md`.
-   - Include the research mode, a clear recommendation, confidence level plus rationale, counterevidence, why not the runner-up, and what would change your mind.
+   - Include the run ID, run directory, worker usage, challenge mode, a clear recommendation, confidence level plus rationale, counterevidence, why not the runner-up, and what would change your mind.
    - For each major conclusion, counterevidence item, and verification check, cite the relevant evidence IDs from the evidence map.
    - Keep detailed source metadata in the evidence map. The final report should cite evidence IDs and summarize only the key source references needed to audit the recommendation.
    - Record any material deviations from the original brief, source hierarchy, or stop rule, and explain why they were necessary.
    - If the answer is still unsafe, record `not decision-ready`, the bounded-budget outcome, and the missing evidence that prevented closure.
 
+10. Write the machine-readable report
+   - Fill `report.json`.
+   - Derive `report.json` from the final canonical brief, evidence map, option analysis, and final report rather than inventing new claims there.
+   - Record the status, decision readiness, confidence, challenge mode, worker usage, missing evidence, and artifact paths.
+   - Update `docs/research/index.json` so later runs and follow-up automation can discover this report.
+   - Validate the completed run with `scripts/validate_research_run.py --run-dir <run-dir>` when local scripting is available.
+
 ## Success condition
 
 This skill succeeds only when one of these is true:
 
-- You have a decision-ready recommendation with explicit evidence, challenge results, confidence, and next steps.
-- You have an explicit `not decision-ready` outcome with the missing evidence called out.
+- You have a decision-ready recommendation with explicit evidence, challenge results, confidence, next steps, persisted Markdown artifacts, and `report.json`.
+- You have an explicit `not decision-ready` outcome with the missing evidence called out and the persisted run artifacts written.

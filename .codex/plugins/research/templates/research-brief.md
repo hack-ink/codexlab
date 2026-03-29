@@ -1,5 +1,7 @@
 # Research Brief
 
+- Run ID:
+- Run directory:
 - Question:
 - Decision to make:
 - Why now:
@@ -22,6 +24,10 @@
 - What counts as decision-ready:
 - Stop rule:
 - Blocking unknowns:
+- Planned worker usage:
+  - Scout:
+  - Analyst:
+  - Skeptic:
 - Initial search plan:
 - Initial exploratory scan (only if `exploratory`):
 - Rewritten hypotheses after exploratory scan:
@@ -34,4 +40,6 @@ Notes:
 - Do not enter the main bounded search with vague exploratory hypotheses; rewrite them after the initial scan or stop.
 - Write rival hypotheses before broad search once they are credible so the search plan is not anchored to one thesis.
 - Write the budget and stop rule before broad search so bounded research stays bounded.
+- Record the run directory before the main search so all later artifacts land in one place.
+- Record whether `scout`, `analyst`, or `skeptic` are expected to trigger so worker usage is inspectable later.
 - Record assumptions here if they are not blocking.

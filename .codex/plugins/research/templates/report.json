@@ -1,0 +1,27 @@
+{
+  "schema": "research-report/1",
+  "run_id": "[TODO: YYYY-MM-DD_slug]",
+  "question": "[TODO]",
+  "status": "decision-ready",
+  "decision_ready": true,
+  "research_mode": "structured",
+  "challenge_mode": "plugin_skeptic",
+  "confidence": "medium",
+  "worker_usage": {
+    "scout": "not_used",
+    "analyst": "not_used",
+    "skeptic": "plugin_skeptic"
+  },
+  "summary": "[TODO]",
+  "recommendation": "[TODO]",
+  "missing_evidence": [],
+  "decision_critical_claims_lacking_independent_corroboration": [],
+  "key_evidence_ids": [],
+  "artifact_paths": {
+    "research_brief": "docs/research/runs/[TODO: YYYY-MM-DD_slug]/research-brief.md",
+    "evidence_map": "docs/research/runs/[TODO: YYYY-MM-DD_slug]/evidence-map.md",
+    "option_analysis": null,
+    "final_report": "docs/research/runs/[TODO: YYYY-MM-DD_slug]/final-report.md",
+    "machine_report": "docs/research/runs/[TODO: YYYY-MM-DD_slug]/report.json"
+  }
+}

@@ -1,5 +1,7 @@
 # Final Report
 
+- Run ID:
+- Run directory:
 - TL;DR:
 - Research mode (`structured` or `exploratory`):
 - Problem statement:
@@ -11,6 +13,11 @@
   - Supporting evidence IDs:
 - Confidence:
 - Confidence rationale:
+- Worker usage:
+  - Scout (`not_used`, `plugin_scout`, or `local_fallback`):
+  - Analyst (`not_used`, `plugin_analyst`, or `local_fallback`):
+  - Skeptic (`not_used`, `plugin_skeptic`, or `local_fallback`):
+- Challenge mode (`plugin_skeptic` or `local_fallback`):
 - Counterevidence:
   - Evidence IDs:
 - Why not the runner-up:
@@ -29,6 +36,7 @@
 - Open questions:
 - Next steps:
 - Evidence map artifact or location:
+- Machine-readable report artifact or location:
 - Search log:
   - Query or path:
   - Date:
@@ -47,7 +55,9 @@ Notes:
 - In `Independent verification checks`, distinguish independent re-checks from same-source re-checks.
 - Do not report `high` confidence if any decision-critical claim lacks independent corroboration.
 - Every major conclusion, counterevidence item, and verification check should cite evidence IDs from the evidence map.
+- If `challenge_mode` is `local_fallback`, do not present the adversarial pass as independently reviewed.
 - Treat the evidence map as the canonical source register; do not duplicate full locator/version/snapshot metadata here.
+- Treat `report.json` as a machine-readable projection of the canonical brief, evidence map, option analysis, and final report; do not invent claims there that are missing here.
 - Record whether the bounded budget was sufficient or whether missing evidence prevented a safe closure.
 - If the workflow deviated from the original brief, source hierarchy, or stop rule, record the deviation and why it was justified.
 - Keep the search log reproducible: include query, date, and any important filters or domains used.
