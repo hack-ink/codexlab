@@ -1,7 +1,7 @@
 {
-  "name": "codexlab-local",
+  "name": "codexlab",
   "interface": {
-    "displayName": "codexlab local"
+    "displayName": "codexlab"
   },
   "plugins": [
     {
